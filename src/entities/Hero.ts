@@ -28,6 +28,9 @@ export class Hero extends Entity {
     public maxStamina: number;
     private staminaRegenTimer: number = 0;
     private fireTimer: number = 0;
+    public ammo: number;
+    public maxAmmo: number;
+    public reloadTimer: number = 0;
 
     // Dash
     private isDashing: boolean = false;
@@ -47,6 +50,10 @@ export class Hero extends Entity {
 
         this.stamina = config.hero.stamina.base;
         this.maxStamina = config.hero.stamina.base;
+
+        this.maxAmmo = config.blaster.magazine_size;
+        this.ammo = this.maxAmmo;
+
         this.color = '#0088FF'; // Blue
     }
 
@@ -61,6 +68,12 @@ export class Hero extends Entity {
         // 1. Cooldowns
         if (this.dashCooldownTimer > 0) this.dashCooldownTimer -= dt;
         if (this.fireTimer > 0) this.fireTimer -= dt;
+        if (this.reloadTimer > 0) {
+            this.reloadTimer -= dt;
+            if (this.reloadTimer <= 0) {
+                this.ammo = this.maxAmmo;
+            }
+        }
         if (this.pushBackCooldownTimer > 0) this.pushBackCooldownTimer -= dt;
         if (this.pushBackVisualTimer > 0) this.pushBackVisualTimer -= dt;
         if (this.damageFlashTimer > 0) this.damageFlashTimer -= dt;
@@ -90,10 +103,18 @@ export class Hero extends Entity {
         }
 
         // Shooting
-        if (input.mouse.leftDown && this.fireTimer <= 0) {
-            this.fireTimer = config.blaster.fire_rate;
-            game.bullets.push(new Bullet(this.x, this.y, input.mouseWorld.x, input.mouseWorld.y));
-            AudioManager.playShoot();
+        if (input.mouse.leftDown && this.fireTimer <= 0 && this.reloadTimer <= 0) {
+            if (this.ammo > 0) {
+                this.ammo--;
+                this.fireTimer = config.blaster.fire_rate;
+                game.bullets.push(new Bullet(this.x, this.y, input.mouseWorld.x, input.mouseWorld.y));
+                AudioManager.playShoot();
+
+                if (this.ammo <= 0) {
+                    this.reloadTimer = config.blaster.reload_time;
+                    AudioManager.playReload();
+                }
+            }
         }
 
         // 3. Normal Movement

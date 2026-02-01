@@ -195,6 +195,40 @@ export class Renderer {
 
             ctx.lineWidth = 1;
             ctx.strokeRect(centerX - 100, height - 55, 200, 10);
+
+            // 4. Ammo Bar (Cyan/White, Above Stamina)
+            const ammoPct = game.hero.ammo / game.hero.maxAmmo;
+            ctx.fillStyle = '#333';
+            ctx.fillRect(centerX - 100, height - 70, 200, 10); // BG
+
+            if (game.hero.reloadTimer > 0) {
+                // Flash or pulsing color for reloading
+                const flash = Math.sin(performance.now() / 100) * 0.5 + 0.5;
+                ctx.fillStyle = `rgba(0, 255, 255, ${flash})`;
+                ctx.fillRect(centerX - 100, height - 70, 200, 10);
+
+                ctx.fillStyle = '#FFF';
+                ctx.font = 'bold 12px sans-serif';
+                ctx.fillText("RELOADING...", centerX, height - 62);
+            } else {
+                ctx.fillStyle = '#00FFFF'; // Cyan
+                ctx.fillRect(centerX - 100, height - 70, 200 * ammoPct, 10);
+
+                // Segmented lines for ammo
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1;
+                for (let i = 1; i < game.hero.maxAmmo; i++) {
+                    const x = (centerX - 100) + (200 / game.hero.maxAmmo) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(x, height - 70);
+                    ctx.lineTo(x, height - 60);
+                    ctx.stroke();
+                }
+            }
+
+            ctx.strokeStyle = '#FFF';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(centerX - 100, height - 70, 200, 10);
         }
 
         // Game Over Overlay

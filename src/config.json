@@ -41,6 +41,8 @@
         "bullet_damage": 25,
         "fire_rate": 0.375,
         "bullet_range": 25,
+        "magazine_size": 10,
+        "reload_time": 1.2,
         "upgrades": {
             "damage_increment": 2,
             "speed_increment": 2,
