@@ -4,6 +4,7 @@ import { InputManager } from "../input";
 import { Entity } from "./Entity";
 import { Bullet } from "./Bullet";
 import { Bomb } from "./Bomb";
+import { AudioManager } from "../audio/AudioManager";
 
 export interface DeathClarityInfo {
     explosionX: number;
@@ -92,6 +93,7 @@ export class Hero extends Entity {
         if (input.mouse.leftDown && this.fireTimer <= 0) {
             this.fireTimer = config.blaster.fire_rate;
             game.bullets.push(new Bullet(this.x, this.y, input.mouseWorld.x, input.mouseWorld.y));
+            AudioManager.playShoot();
         }
 
         // 3. Normal Movement

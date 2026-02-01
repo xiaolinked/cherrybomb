@@ -2,6 +2,7 @@ import { ConfigManager } from "../config";
 import { Game } from "../game";
 import { Entity } from "./Entity";
 import { Enemy } from "./Enemy";
+import { AudioManager } from "../audio/AudioManager";
 
 export enum BombState {
     IDLE,       // Passive on enemy back
@@ -109,6 +110,7 @@ export class Bomb extends Entity {
     public explode(game: Game) {
         if (this.state === BombState.DEAD || this.state === BombState.EXPLODING) return;
 
+        AudioManager.playExplosion();
         this.state = BombState.EXPLODING;
         this.explosionTimer = this.explosionDuration;
 

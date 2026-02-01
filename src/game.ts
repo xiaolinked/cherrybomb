@@ -7,6 +7,7 @@ import { ConfigManager } from './config';
 import { WaveManager } from './managers/WaveManager';
 import { InputManager } from './input';
 import { Coin } from './entities/Coin';
+import { AudioManager } from './audio/AudioManager';
 
 export class Game {
     private lastTime: number = 0;
@@ -95,6 +96,7 @@ export class Game {
             this.coins.splice(idx, 1);
             this.score += 100 * coin.value;
             this.coinCount += coin.value;
+            AudioManager.playCoin();
             console.log(`Coin Collected! Total: ${this.coinCount}, Score: ${this.score}`);
         }
     }
@@ -104,6 +106,7 @@ export class Game {
             const config = ConfigManager.getConfig();
             this.coinCount -= cost;
             this.shopCooldown = 0.3; // Prevent accidental double buy
+            AudioManager.playBuy();
 
             switch (type) {
                 case 'damage':
