@@ -96,7 +96,7 @@ export class Game {
             this.coins.splice(idx, 1);
             this.score += 100 * coin.value;
             this.coinCount += coin.value;
-            AudioManager.playBuy();
+            AudioManager.playCoin();
             console.log(`Coin Collected! Total: ${this.coinCount}, Score: ${this.score}`);
         }
     }
@@ -166,10 +166,9 @@ export class Game {
                 else if (input.keys['2']) {
                     this.buyUpgrade('firerate', 90);
                 }
-                // 3. Multishot (Cost: 4x Base)
+                // 3. Multishot (Cost: 120)
                 else if (input.keys['3']) {
-                    const config = ConfigManager.getConfig();
-                    this.buyUpgrade('multishot', config.economy.upgrades.cost_base * 4);
+                    this.buyUpgrade('multishot', 120);
                 }
                 // 4. Stamina +60 (Cost: 100)
                 else if (input.keys['4']) {

@@ -159,7 +159,7 @@ export class Renderer {
             const opts = [
                 `1. Damage [${config.economy.upgrades.cost_base}]`,
                 `2. Fire Rate [${config.economy.upgrades.cost_base}]`,
-                `3. Multishot [${config.economy.upgrades.cost_base * 4}]`, // Higher cost for multishot
+                `3. Multishot [120]`, // Fixed cost as requested
                 `4. Max Stamina [${config.economy.upgrades.cost_base}]`
             ];
 
