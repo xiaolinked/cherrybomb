@@ -1,7 +1,6 @@
 import { Entity } from "./Entity";
 import { Game } from "../game";
 import { ConfigManager } from "../config";
-import { Enemy } from "./Enemy";
 
 export class Bullet extends Entity {
     private velocity: { x: number, y: number };

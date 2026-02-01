@@ -23,7 +23,6 @@ export class Hero extends Entity {
     public maxHp: number;
     public killingBlow: DeathClarityInfo | null = null;
 
-    private speed: number = 5; // Will be overwritten by stats
     public stamina: number;
     public maxStamina: number;
     private staminaRegenTimer: number = 0;
