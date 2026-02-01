@@ -96,7 +96,7 @@ export class Game {
             this.coins.splice(idx, 1);
             this.score += 100 * coin.value;
             this.coinCount += coin.value;
-            AudioManager.playCoin();
+            AudioManager.playBuy();
             console.log(`Coin Collected! Total: ${this.coinCount}, Score: ${this.score}`);
         }
     }
