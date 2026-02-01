@@ -8,6 +8,14 @@ export class ZzFX {
         // Initialize audio context on first play
         if (!this.x) {
             this.x = new (window.AudioContext || (window as any).webkitAudioContext)();
+            console.log("AudioContext Initialized. State:", this.x.state);
+        }
+
+        // Resume if suspended (browser security requirement)
+        if (this.x.state === 'suspended') {
+            this.x.resume().then(() => {
+                console.log("AudioContext Resumed.");
+            });
         }
 
         const [
