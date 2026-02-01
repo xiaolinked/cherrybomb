@@ -1,0 +1,35 @@
+{
+    "id": "enemy_carrier",
+    "name": "Bomb Carrier",
+    "type": "enemy",
+    "baseStats": {
+        "hp": "enemy.base_hp",
+        "shield": "enemy.base_shield_hp",
+        "walkSpeed": "enemy.movement.walk_speed",
+        "chargeSpeed": "enemy.movement.charge_speed"
+    },
+    "behavior": {
+        "spawn_delay": "enemy.spawn.spawn_delay",
+        "min_spawn_dist": "enemy.spawn.min_distance_from_hero"
+    },
+    "visuals": {
+        "spriteId": "enemy_carrier_minion_32bit",
+        "collisionRadius": 0.5,
+        "shieldColor": "rgba(100, 100, 255, 0.4)",
+        "shieldBreakEffect": "glass_shatter",
+        "states": {
+            "shielded": "enemy_states_sheet_32bit_frame1",
+            "charging": "enemy_states_sheet_32bit_frame2",
+            "exploding": "enemy_states_sheet_32bit_frame3"
+        }
+    },
+    "attachments": [
+        {
+            "type": "bomb",
+            "offset": {
+                "x": 0,
+                "y": -0.5
+            }
+        }
+    ]
+}

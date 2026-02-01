@@ -1,0 +1,22 @@
+{
+    "id": "hero",
+    "name": "The Survivor",
+    "type": "player",
+    "baseStats": {
+        "hp": "hero.base_hp",
+        "armor": "hero.base_armor",
+        "stamina": "hero.stamina.base"
+    },
+    "abilities": {
+        "dash": "abilities.dash",
+        "pushBack": "abilities.push_back"
+    },
+    "visuals": {
+        "spriteId": "hero_regular_dude_32bit",
+        "collisionRadius": 0.4,
+        "colors": {
+            "primary": "#FFFFFF",
+            "accent": "#0000AA"
+        }
+    }
+}

@@ -1,0 +1,48 @@
+{
+    "hero": {
+        "width": 1.0,
+        "height": 1.4,
+        "fill": "#2F80FF",
+        "outline": "#0B3D91",
+        "outline_width": 0.05,
+        "damaged_flash_duration": 0.08,
+        "dash_stretch": 1.2,
+        "dash_trail_color": "rgba(47, 128, 255, 0.4)"
+    },
+    "enemy": {
+        "width": 1.2,
+        "height": 1.4,
+        "fill": "#FFD84D",
+        "outline": "#8A6A00",
+        "outline_width": 0.05,
+        "shield": {
+            "radius": 1.6,
+            "color": "#4DFFF3",
+            "opacity": 0.7
+        },
+        "armed": {
+            "shake_intensity": 2,
+            "saturation_boost": 0.1
+        }
+    },
+    "bomb": {
+        "radius": 0.35,
+        "colors": {
+            "unarmed": "#8B1E1E",
+            "armed": "#FF3B3B"
+        },
+        "text": {
+            "fill": "white",
+            "outline": "black"
+        }
+    },
+    "explosion": {
+        "duration": 0.25,
+        "colors": {
+            "center": "#FFF2A8",
+            "mid": "#FF9933",
+            "edge": "#FF3B3B"
+        },
+        "hit_stop": 0.05
+    }
+}

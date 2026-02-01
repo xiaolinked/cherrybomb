@@ -1,0 +1,44 @@
+{
+    "items": [
+        {
+            "id": "cherry_bomb",
+            "name": "Cherry Bomb",
+            "type": "explosive",
+            "stats": {
+                "countdown": "bomb.countdown_duration",
+                "radius": "bomb.explosion.radius",
+                "maxDamage": "bomb.explosion.max_damage"
+            },
+            "states": [
+                "unarmed",
+                "armed",
+                "detached"
+            ],
+            "visuals": {
+                "spriteId": "cherry_bomb_hybrid_32bit",
+                "armedColor": "#FF0000",
+                "pulseSpeed": "ui.bomb_visuals.pulse_speed"
+            }
+        },
+        {
+            "id": "coin",
+            "name": "Credit",
+            "type": "currency",
+            "value": 1,
+            "visuals": {
+                "spriteId": "icon_coin",
+                "color": "#FFD700"
+            }
+        },
+        {
+            "id": "blaster_default",
+            "name": "Pulse Pistol",
+            "type": "weapon",
+            "stats": {
+                "damage": "blaster.bullet_damage",
+                "speed": "blaster.bullet_speed",
+                "fireRate": "blaster.fire_rate"
+            }
+        }
+    ]
+}

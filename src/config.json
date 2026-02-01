@@ -1,0 +1,135 @@
+{
+    "game_flow": {
+        "wave_base_duration": 25,
+        "wave_duration_growth": 1.5,
+        "wave_enemy_count_base": 6,
+        "wave_enemy_count_scaling": 1.2,
+        "wave_difficulty_multiplier": 1.0,
+        "inter_wave_pause_time": 2
+    },
+    "hero": {
+        "base_hp": 300,
+        "base_armor": 0,
+        "armor": {
+            "damage_reduction_percent": 0.2,
+            "upgrade_increment": 1
+        },
+        "stamina": {
+            "base": 100,
+            "regen_rate": 20,
+            "regen_delay_after_dash": 0.5,
+            "max_cap": 300,
+            "upgrade_increment": 20
+        }
+    },
+    "abilities": {
+        "dash": {
+            "distance": 3.0,
+            "stamina_cost": 30,
+            "cooldown": 0.2,
+            "iframe_duration": 0.15
+        },
+        "push_back": {
+            "distance": 3.0,
+            "radius": 1.8,
+            "cooldown": 3.0,
+            "force_priority": 1.0
+        }
+    },
+    "blaster": {
+        "bullet_speed": 18,
+        "bullet_damage": 25,
+        "fire_rate": 0.375,
+        "bullet_range": 25,
+        "upgrades": {
+            "damage_increment": 2,
+            "speed_increment": 2,
+            "fire_rate_increment": 0.5,
+            "max_fire_rate_cap": 12
+        }
+    },
+    "enemy": {
+        "base_hp": 30,
+        "base_shield_hp": 40,
+        "movement": {
+            "walk_speed": 2.2,
+            "charge_speed": 6.0,
+            "turn_rate": 720
+        },
+        "spawn": {
+            "spawn_delay": 0.3,
+            "min_distance_from_hero": 8,
+            "max_distance_from_hero": 18
+        },
+        "scaling": {
+            "hp_per_wave": 1.15,
+            "shield_per_wave": 1.2,
+            "speed_per_wave": 1.03
+        }
+    },
+    "shield": {
+        "max_hp": 40,
+        "regen_enabled": false,
+        "break_visual_duration": 0.4,
+        "hit_feedback_intensity": 1.0
+    },
+    "bomb": {
+        "proximity_activation_distance": 5,
+        "countdown_duration": 3.0,
+        "explosion": {
+            "radius": 4.5,
+            "max_damage": 60,
+            "min_damage": 15,
+            "damage_falloff_curve": "linear",
+            "chain_delay": 0.1,
+            "screen_shake_intensity": 0.6
+        },
+        "detached": {
+            "lifetime": 3.0,
+            "warning_flash_time": 0.8
+        }
+    },
+    "explosion_rules": {
+        "shield_removal_radius_override": true,
+        "unshielded_damage_multiplier": 1.0,
+        "self_explosion_kill_override": true
+    },
+    "economy": {
+        "coins_drop_base": 3,
+        "coins_drop_random_variance": 2,
+        "coins_per_kill_multiplier": 1.0,
+        "coins_wave_bonus": 10,
+        "upgrades": {
+            "cost_base": 10,
+            "cost_scaling": 1.35,
+            "cost_curve": "exponential"
+        }
+    },
+    "ui": {
+        "countdown_font_size": 18,
+        "countdown_color_thresholds": {
+            "warning": 2.0,
+            "danger": 1.0
+        },
+        "bomb_visuals": {
+            "pulse_speed": 3.0,
+            "glow_intensity": 1.2
+        },
+        "stamina": {
+            "low_stamina_flash_threshold": 20
+        },
+        "hero": {
+            "low_hp_warning_threshold": 25
+        }
+    },
+    "arena": {
+        "size": 30,
+        "spawn_point_cooldown": 0.5
+    },
+    "safety_limits": {
+        "max_simultaneous_armed_enemies": 8,
+        "max_simultaneous_detached_bombs": 6,
+        "chain_reaction_limit": 5,
+        "panic_spawn_suppression_time": 2.0
+    }
+}
