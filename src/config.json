@@ -11,8 +11,7 @@
         "base_hp": 225,
         "base_armor": 0,
         "armor": {
-            "damage_reduction_percent": 0.2,
-            "upgrade_increment": 1
+            "damage_reduction_percent": 0.2
         },
         "stamina": {
             "base": 100,
@@ -43,11 +42,13 @@
         "bullet_range": 25,
         "magazine_size": 10,
         "reload_time": 1.2,
+        "multishot_count": 1,
         "upgrades": {
             "damage_increment": 2,
             "speed_increment": 2,
             "fire_rate_increment": 0.5,
-            "max_fire_rate_cap": 12
+            "max_fire_rate_cap": 12,
+            "multishot_increment": 1
         }
     },
     "enemy": {

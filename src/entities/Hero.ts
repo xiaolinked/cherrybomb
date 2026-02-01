@@ -31,6 +31,7 @@ export class Hero extends Entity {
     public ammo: number;
     public maxAmmo: number;
     public reloadTimer: number = 0;
+    public multishot: number = 1;
 
     // Dash
     private isDashing: boolean = false;
@@ -53,6 +54,7 @@ export class Hero extends Entity {
 
         this.maxAmmo = config.blaster.magazine_size;
         this.ammo = this.maxAmmo;
+        this.multishot = config.blaster.multishot_count;
 
         this.color = '#0088FF'; // Blue
     }
@@ -107,7 +109,21 @@ export class Hero extends Entity {
             if (this.ammo > 0) {
                 this.ammo--;
                 this.fireTimer = config.blaster.fire_rate;
-                game.bullets.push(new Bullet(this.x, this.y, input.mouseWorld.x, input.mouseWorld.y));
+
+                // Multishot Logic
+                const baseAngle = Math.atan2(input.mouseWorld.y - this.y, input.mouseWorld.x - this.x);
+                const spread = 0.1; // ~5.7 degrees in radians
+
+                for (let i = 0; i < this.multishot; i++) {
+                    // Center the spread
+                    const offset = (i - (this.multishot - 1) / 2) * spread;
+                    const angle = baseAngle + offset;
+                    const targetX = this.x + Math.cos(angle) * 10;
+                    const targetY = this.y + Math.sin(angle) * 10;
+
+                    game.bullets.push(new Bullet(this.x, this.y, targetX, targetY));
+                }
+
                 AudioManager.playShoot();
 
                 if (this.ammo <= 0) {

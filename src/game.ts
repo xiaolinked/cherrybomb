@@ -117,9 +117,9 @@ export class Game {
                     config.blaster.fire_rate = Math.max(0.05, config.blaster.fire_rate - 0.05);
                     console.log(`Upgraded Fire Rate: ${config.blaster.fire_rate}`);
                     break;
-                case 'armor':
-                    config.hero.armor.damage_reduction_percent = Math.min(0.8, config.hero.armor.damage_reduction_percent + 0.05);
-                    console.log(`Upgraded Armor: ${config.hero.armor.damage_reduction_percent}`);
+                case 'multishot':
+                    this.hero.multishot += config.blaster.upgrades.multishot_increment;
+                    console.log(`Upgraded Multishot: ${this.hero.multishot}`);
                     break;
                 case 'stamina':
                     this.hero.maxStamina += 60;
@@ -166,9 +166,10 @@ export class Game {
                 else if (input.keys['2']) {
                     this.buyUpgrade('firerate', 90);
                 }
-                // 3. Armor Up (Cost: 120)
+                // 3. Multishot (Cost: 4x Base)
                 else if (input.keys['3']) {
-                    this.buyUpgrade('armor', 120);
+                    const config = ConfigManager.getConfig();
+                    this.buyUpgrade('multishot', config.economy.upgrades.cost_base * 4);
                 }
                 // 4. Stamina +60 (Cost: 100)
                 else if (input.keys['4']) {

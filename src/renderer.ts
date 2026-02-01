@@ -153,13 +153,14 @@ export class Renderer {
             ctx.textAlign = 'left';
             const startY = 150;
             const lineHeight = 30;
+            const config = ConfigManager.getConfig();
 
             // Draw Options
             const opts = [
-                "[1] Damage +2  ($60)",
-                "[2] Fire Rate  ($90)",
-                "[3] Armor +5%  ($120)",
-                "[4] Max Stam +60 ($100)"
+                `1. Damage [${config.economy.upgrades.cost_base}]`,
+                `2. Fire Rate [${config.economy.upgrades.cost_base}]`,
+                `3. Multishot [${config.economy.upgrades.cost_base * 4}]`, // Higher cost for multishot
+                `4. Max Stamina [${config.economy.upgrades.cost_base}]`
             ];
 
             // Background box for shop
