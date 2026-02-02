@@ -13,6 +13,9 @@
         "armor": {
             "damage_reduction_percent": 0.2
         },
+        "hp": {
+            "upgrade_increment": 50
+        },
         "stamina": {
             "base": 100,
             "regen_rate": 20,

@@ -94,6 +94,7 @@ export class Game {
         this.isDeathSequenceStarted = false;
         this.deathPauseTimer = 0;
         this.deathHighlightTimer = 0;
+        this.generateUpgradeOptions();
         console.log("Game Restarted");
     }
 
