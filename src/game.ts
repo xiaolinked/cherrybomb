@@ -9,6 +9,13 @@ import { InputManager } from './input';
 import { Coin } from './entities/Coin';
 import { AudioManager } from './audio/AudioManager';
 
+export interface UpgradeOption {
+    type: 'damage' | 'firerate' | 'multishot' | 'health' | 'stamina';
+    name: string;
+    description: string;
+    cost: number;
+}
+
 export class Game {
     private lastTime: number = 0;
     public renderer: Renderer;
@@ -22,6 +29,7 @@ export class Game {
 
     public score: number = 0;
     public coinCount: number = 0; // Currency for shop
+    public currentShopOptions: UpgradeOption[] = [];
 
     private shopCooldown: number = 0;
     public hitStopTimer: number = 0;
@@ -38,6 +46,7 @@ export class Game {
 
         this.hero = new Hero(0, 0);
         this.waveManager = new WaveManager(this);
+        this.generateUpgradeOptions();
     }
 
     public start() {
@@ -121,6 +130,11 @@ export class Game {
                     this.hero.multishot += config.blaster.upgrades.multishot_increment;
                     console.log(`Upgraded Multishot: ${this.hero.multishot}`);
                     break;
+                case 'health':
+                    this.hero.maxHp += config.hero.hp.upgrade_increment;
+                    this.hero.hp = this.hero.maxHp;
+                    console.log(`Upgraded Health: ${this.hero.maxHp}`);
+                    break;
                 case 'stamina':
                     this.hero.maxStamina += 60;
                     this.hero.stamina = this.hero.maxStamina; // Fill it up too
@@ -158,21 +172,18 @@ export class Game {
 
             // Allow upgrades only if Shop is strictly open (not just Ready to start game)
             if (this.waveManager.isShopOpen && this.shopCooldown <= 0) {
-                // 1. Damage Up (Cost: 60)
-                if (input.keys['1']) {
-                    this.buyUpgrade('damage', 60);
-                }
-                // 2. Fire Rate Up (Cost: 90)
-                else if (input.keys['2']) {
-                    this.buyUpgrade('firerate', 90);
-                }
-                // 3. Multishot (Cost: 5)
-                else if (input.keys['3']) {
-                    this.buyUpgrade('multishot', 5);
-                }
-                // 4. Stamina +60 (Cost: 100)
-                else if (input.keys['4']) {
-                    this.buyUpgrade('stamina', 100);
+                // Pick from 3 Options
+                for (let i = 0; i < 3; i++) {
+                    const opt = this.currentShopOptions[i];
+                    if (opt && input.keys[(i + 1).toString()]) {
+                        if (this.coinCount >= opt.cost) {
+                            this.buyUpgrade(opt.type, opt.cost);
+                            // Auto-proceed once an upgrade is picked
+                            this.waveManager.triggerNextPhase();
+                            this.shopCooldown = 0.5;
+                            break;
+                        }
+                    }
                 }
             }
 
@@ -237,6 +248,21 @@ export class Game {
             const coin = this.coins[i];
             coin.update(dt, this);
         }
+    }
+
+    public generateUpgradeOptions() {
+        const pool: UpgradeOption[] = [
+            { type: 'damage', name: 'Raw Power', description: '+2 Damage', cost: 60 },
+            { type: 'firerate', name: 'Rapid Fire', description: 'Faster Shoots', cost: 90 },
+            { type: 'multishot', name: 'Multishot', description: '+1 Bullet/Shot', cost: 120 },
+            { type: 'health', name: 'Vitality', description: '+50 Max HP', cost: 80 },
+            { type: 'stamina', name: 'Endurance', description: '+60 Max Stamina', cost: 100 }
+        ];
+
+        // Pick 3 random unique
+        const shuffled = [...pool].sort(() => 0.5 - Math.random());
+        this.currentShopOptions = shuffled.slice(0, 3);
+        console.log("New Shop Options Generated:", this.currentShopOptions);
     }
 
     public getEntities() {

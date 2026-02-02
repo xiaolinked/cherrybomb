@@ -149,28 +149,50 @@ export class Renderer {
             ctx.fillStyle = '#AAAAAA';
             ctx.fillText("Press SPACE to Start Wave", centerX, 80);
 
-            ctx.font = '20px monospace';
-            ctx.textAlign = 'left';
             const startY = 150;
-            const lineHeight = 30;
-            const config = ConfigManager.getConfig();
+            const cardWidth = 200;
+            const cardHeight = 120;
+            const spacing = 20;
+            const totalWidth = (cardWidth * 3) + (spacing * 2);
+            const startX = centerX - totalWidth / 2;
 
-            // Draw Options
-            const opts = [
-                `1. Damage [${config.economy.upgrades.cost_base}]`,
-                `2. Fire Rate [${config.economy.upgrades.cost_base}]`,
-                `3. Multishot [5]`, // Temporary cost for testing
-                `4. Max Stamina [${config.economy.upgrades.cost_base}]`
-            ];
+            for (let i = 0; i < 3; i++) {
+                const opt = game.currentShopOptions[i];
+                if (!opt) continue;
 
-            // Background box for shop
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-            ctx.fillRect(centerX - 150, startY - 30, 300, 160);
+                const x = startX + i * (cardWidth + spacing);
+                const y = startY;
 
-            ctx.fillStyle = '#FFF';
-            for (let i = 0; i < opts.length; i++) {
-                ctx.fillText(opts[i], centerX - 130, startY + (i * lineHeight));
+                // Card BG
+                ctx.fillStyle = 'rgba(30, 30, 30, 0.9)';
+                ctx.strokeStyle = '#FFFF00';
+                ctx.lineWidth = 2;
+                ctx.fillRect(x, y, cardWidth, cardHeight);
+                ctx.strokeRect(x, y, cardWidth, cardHeight);
+
+                // Option Number
+                ctx.fillStyle = '#FFFF00';
+                ctx.font = 'bold 18px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(`[${i + 1}]`, x + cardWidth / 2, y + 25);
+
+                // Name
+                ctx.fillStyle = '#FFF';
+                ctx.font = 'bold 16px sans-serif';
+                ctx.fillText(opt.name, x + cardWidth / 2, y + 50);
+
+                // Description
+                ctx.font = '14px sans-serif';
+                ctx.fillStyle = '#AAA';
+                ctx.fillText(opt.description, x + cardWidth / 2, y + 75);
+
+                // Cost
+                ctx.font = 'bold 16px monospace';
+                ctx.fillStyle = game.coinCount >= opt.cost ? '#00FF00' : '#FF0000';
+                ctx.fillText(`$${opt.cost}`, x + cardWidth / 2, y + 105);
             }
+
+            ctx.textAlign = 'center'; // Reset for other draws
         }
 
         // 2. Hero HP (Bottom Center or Left)

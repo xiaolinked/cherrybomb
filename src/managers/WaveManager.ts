@@ -86,6 +86,8 @@ export class WaveManager {
         this.game.enemies = [];
         this.game.bombs = [];
         this.game.coins = [];
+
+        this.game.generateUpgradeOptions();
     }
 
     private handleSpawning(dt: number) {

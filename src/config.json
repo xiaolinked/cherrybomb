@@ -37,7 +37,7 @@
     },
     "blaster": {
         "bullet_speed": 18,
-        "bullet_damage": 25,
+        "bullet_damage": 15,
         "fire_rate": 0.375,
         "bullet_range": 25,
         "magazine_size": 10,
