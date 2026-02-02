@@ -347,6 +347,7 @@ export class Game {
             enemy.update(dt, this);
             this.checkObstacleCollision(enemy, dt);
             if (enemy.isDead) {
+                enemy.onDeath(this);
                 this.enemies.splice(i, 1);
                 const coinsDropped = config.economy.coins_drop_base + Math.floor(Math.random() * (config.economy.coins_drop_random_variance + 1));
                 for (let j = 0; j < coinsDropped; j++) {

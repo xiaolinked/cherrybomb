@@ -115,6 +115,10 @@ export class Enemy extends Entity {
         }
     }
 
+    public onDeath(_game: Game): void {
+        // Overridden by subclasses
+    }
+
     public draw(ctx: CanvasRenderingContext2D): void {
         ctx.save();
         ctx.globalAlpha = this.opacity;
