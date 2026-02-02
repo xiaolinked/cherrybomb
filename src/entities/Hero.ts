@@ -257,6 +257,10 @@ export class Hero extends Entity {
         ctx.save();
         ctx.translate(this.x, this.y);
 
+        // Bloom Effect
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#2F80FF';
+
         // Visual Push Back Effect
         if (this.pushBackVisualTimer > 0) {
             const config = ConfigManager.getConfig();
@@ -306,6 +310,7 @@ export class Hero extends Entity {
         const aimAngle = Math.atan2(input.mouseWorld.y - this.y, input.mouseWorld.x - this.x);
 
         ctx.save();
+        ctx.translate(this.x, this.y); // Fix: Translate back to hero position
         ctx.rotate(aimAngle);
 
         // Gun Body - Made larger and lighter for visibility

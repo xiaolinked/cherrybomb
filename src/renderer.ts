@@ -31,8 +31,8 @@ export class Renderer {
             this.shakeTimer -= dt;
         }
 
-        // Clear screen
-        this.ctx.fillStyle = '#111';
+        // Clear screen (Deep Space Blue)
+        this.ctx.fillStyle = '#0a0a12';
         this.ctx.fillRect(0, 0, this.width, this.height);
 
         // Center camera on Hero if exists
@@ -66,6 +66,7 @@ export class Renderer {
 
         // Draw Infinite Grid
         this.drawInfiniteGrid(cameraX, cameraY);
+
 
         // Draw Obstacles
         if (game.obstacles) {
@@ -114,6 +115,8 @@ export class Renderer {
         if (game.deathHighlightTimer > 0) {
             this.drawDeathClarity(game);
         }
+
+        this.drawScanlines();
     }
 
     private drawInfiniteGrid(cameraX: number, cameraY: number) {
@@ -130,8 +133,11 @@ export class Renderer {
         const startY = Math.floor((cameraY - halfHeight) / gridSize) * gridSize;
         const endY = Math.ceil((cameraY + halfHeight) / gridSize) * gridSize;
 
-        ctx.strokeStyle = '#222';
+        ctx.save();
+        ctx.strokeStyle = '#1a1a2e'; // Faint Neon Blue
         ctx.lineWidth = 0.05;
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = '#0000FF'; // Blue Glow
 
         ctx.beginPath();
         for (let x = startX; x <= endX; x += gridSize) {
@@ -143,7 +149,35 @@ export class Renderer {
             ctx.lineTo(endX, y);
         }
         ctx.stroke();
+        ctx.restore();
     }
+
+    private drawScanlines() {
+        const ctx = this.ctx;
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'overlay'; // Blend mode for subtlety
+
+        // Scanlines
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        for (let y = 0; y < this.height; y += 4) {
+            ctx.fillRect(0, y, this.width, 2);
+        }
+
+        // Vignette
+        const grad = ctx.createRadialGradient(
+            this.width / 2, this.height / 2, this.height * 0.4,
+            this.width / 2, this.height / 2, this.height * 0.9
+        );
+        grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0.6)'); // Darken corners
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        ctx.restore();
+    }
+
 
     private drawUI(game: Game) {
         const ctx = this.ctx;

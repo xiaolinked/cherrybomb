@@ -113,6 +113,10 @@ export class Enemy extends Entity {
         ctx.save();
         ctx.translate(this.x, this.y);
 
+        // Bloom Effect
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#FFD84D';
+
         // Draw Shield Aura if active
         // VISUAL SPEC: Radius 1.6, Color #4DFFF3, Opacity 70%
         if (this.shield > 0) {
