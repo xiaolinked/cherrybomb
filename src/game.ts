@@ -271,10 +271,37 @@ export class Game {
             }
 
             if (this.waveManager.isShopOpen && this.shopCooldown <= 0) {
+                // Keyboard Input
                 for (let i = 0; i < 3; i++) {
                     const opt = this.currentShopOptions[i];
                     if (opt && input.keys[(i + 1).toString()]) {
                         this.buyUpgrade(i);
+                    }
+                }
+
+                // Mouse Input (Clickable Cards)
+                if (input.isNewClick()) {
+                    const mx = input.mouse.x;
+                    const my = input.mouse.y;
+                    const cx = window.innerWidth / 2;
+                    const startY = 150;
+                    const cardWidth = 200;
+                    const cardHeight = 120;
+                    const spacing = 20;
+                    const totalWidth = (cardWidth * 3) + (spacing * 2);
+                    const startX = cx - totalWidth / 2;
+
+                    for (let i = 0; i < 3; i++) {
+                        const opt = this.currentShopOptions[i];
+                        if (!opt) continue;
+
+                        const x = startX + i * (cardWidth + spacing);
+                        const y = startY;
+
+                        if (mx >= x && mx <= x + cardWidth && my >= y && my <= y + cardHeight) {
+                            this.buyUpgrade(i);
+                            break; // Handle one click at a time
+                        }
                     }
                 }
             }

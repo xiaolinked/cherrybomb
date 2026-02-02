@@ -253,9 +253,14 @@ export class Renderer {
                 const y = startY;
 
                 // Card BG
-                ctx.fillStyle = 'rgba(30, 30, 30, 0.9)';
-                ctx.strokeStyle = '#FFFF00';
-                ctx.lineWidth = 2;
+                const input = InputManager.getInstance();
+                const mx = input.mouse.x;
+                const my = input.mouse.y;
+                const isHovered = mx >= x && mx <= x + cardWidth && my >= y && my <= y + cardHeight;
+
+                ctx.fillStyle = isHovered ? 'rgba(50, 50, 50, 0.95)' : 'rgba(30, 30, 30, 0.9)';
+                ctx.strokeStyle = isHovered ? '#FFFFFF' : '#FFFF00';
+                ctx.lineWidth = isHovered ? 4 : 2;
                 ctx.fillRect(x, y, cardWidth, cardHeight);
                 ctx.strokeRect(x, y, cardWidth, cardHeight);
 

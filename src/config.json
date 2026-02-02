@@ -8,7 +8,7 @@
         "inter_wave_pause_time": 2
     },
     "hero": {
-        "base_hp": 225,
+        "base_hp": 150,
         "base_armor": 0,
         "armor": {
             "damage_reduction_percent": 0.2
