@@ -221,6 +221,9 @@ export class Hero extends Entity {
     private damageFlashTimer: number = 0;
 
     public takeDamage(amount: number, source?: Bomb) {
+        // Global safety: don't take damage if hero is already dead
+        if (this.isDead) return;
+
         const config = ConfigManager.getConfig();
         const reduction = config.hero.armor.damage_reduction_percent;
         const finalDamage = amount * (1.0 - reduction);

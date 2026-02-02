@@ -395,7 +395,7 @@ export class Game {
 
     public generateUpgradeOptions() {
         const config = ConfigManager.getConfig();
-        const pool: UpgradeOption[] = config.shop.upgrades;
+        const pool: UpgradeOption[] = config.shop.upgrades as UpgradeOption[];
         const shuffled = [...pool].sort(() => 0.5 - Math.random());
         this.currentShopOptions = shuffled.slice(0, config.shop.options_per_wave);
     }

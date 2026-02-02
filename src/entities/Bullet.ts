@@ -30,6 +30,12 @@ export class Bullet extends Entity {
     }
 
     public update(dt: number, game: Game): void {
+        if (this.isFadingOut) {
+            this.opacity -= dt * 0.8;
+            if (this.opacity < 0) this.opacity = 0;
+            return; // STOP LOGIC
+        }
+
         // Move
         this.x += this.velocity.x * dt;
         this.y += this.velocity.y * dt;
@@ -39,11 +45,6 @@ export class Bullet extends Entity {
         if (this.lifetime >= this.maxLifetime) {
             this.isDead = true;
             return;
-        }
-
-        if (this.isFadingOut) {
-            this.opacity -= dt * 0.8;
-            if (this.opacity < 0) this.opacity = 0;
         }
 
         // Collision with Obstacles

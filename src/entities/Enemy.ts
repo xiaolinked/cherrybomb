@@ -40,6 +40,7 @@ export class Enemy extends Entity {
         if (this.isFadingOut) {
             this.opacity -= dt * 0.8;
             if (this.opacity < 0) this.opacity = 0;
+            return; // STOP AI (no movement, no attacking)
         }
 
         if (!hero) return;

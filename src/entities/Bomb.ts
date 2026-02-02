@@ -45,6 +45,7 @@ export class Bomb extends Entity {
         if (this.isFadingOut) {
             this.opacity -= dt * 0.8;
             if (this.opacity < 0) this.opacity = 0;
+            return; // STOP LOGIC (don't explode, don't move)
         }
 
         // 0. Explosion Logic
@@ -59,11 +60,6 @@ export class Bomb extends Entity {
         // 1. Position Logic
         if (this.parent) {
             // Stick to parent's back (offset)
-            // Parent Angle is facing HERO. Bomb should be on back? 
-            // Or just on top? Let's say slightly behind.
-            // We need parent's angle.
-            // Hack: access private angle or re-calc. 
-            // For now, let's just stick to center to be simple.
             this.x = this.parent.x;
             this.y = this.parent.y;
 
@@ -105,8 +101,6 @@ export class Bomb extends Entity {
     public detach() {
         this.parent = null;
         this.state = BombState.DETACHED;
-        // If not already armed, arm it? Or give it a specific lifetime?
-        // Config says: detached.lifetime
         if (this.timer <= 0) {
             this.timer = ConfigManager.getConfig().bomb.detached.lifetime;
         }
@@ -114,6 +108,12 @@ export class Bomb extends Entity {
 
     public explode(game: Game) {
         if (this.state === BombState.DEAD || this.state === BombState.EXPLODING) return;
+
+        // Safety: don't damage player during wave completion or intermissions
+        if (this.isFadingOut || !game.waveManager.isWaveActive) {
+            this.state = BombState.DEAD; // Just kill it silently
+            return;
+        }
 
         const config = ConfigManager.getConfig();
         AudioManager.playExplosion();
@@ -128,13 +128,6 @@ export class Bomb extends Entity {
             this.parent.bomb = null; // Detach from parent
             this.parent = null;
             game.bombs.push(this); // Handover to Game loop
-        } else {
-            // If already detached, it's presumably already in game.bombs?
-            // We need to be careful not to double add if we iterate game.bombs
-            // But explode is called from update. 
-            // If it was Detached, it is in game.bombs. update calls explode.
-            // We don't need to push it again.
-            // But if it was Attached (parent != null), it wasn't in game.bombs.
         }
 
         console.log("BOOM at ", this.x, this.y);
