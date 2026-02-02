@@ -279,24 +279,7 @@ export class Hero extends Entity {
             ctx.scale(1.2, 0.85); // Stretch X, squash Y slightly to preserve volume
         }
 
-        // --- DRAW BLASTER ---
-        const input = InputManager.getInstance();
-        const aimAngle = Math.atan2(input.mouseWorld.y - this.y, input.mouseWorld.x - this.x);
 
-        ctx.save();
-        ctx.rotate(aimAngle);
-
-        // Gun Body
-        ctx.fillStyle = '#333';
-        ctx.fillRect(0.2, -0.12, 0.7, 0.24); // Barrel
-        ctx.fillStyle = '#555';
-        ctx.fillRect(0.2, -0.06, 0.2, 0.12); // Grip detail
-
-        // Barrel Polish
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 0.05;
-        ctx.strokeRect(0.2, -0.12, 0.7, 0.24);
-        ctx.restore();
 
         // Draw Body (Rectangle)
         // VISUAL SPEC: 1.0 wide, 1.4 high
@@ -316,6 +299,25 @@ export class Hero extends Entity {
         ctx.lineWidth = 0.05;
         ctx.strokeRect(-w / 2, -h / 2, w, h);
 
+        ctx.restore();
+
+        // --- DRAW BLASTER (On Top) ---
+        const input = InputManager.getInstance();
+        const aimAngle = Math.atan2(input.mouseWorld.y - this.y, input.mouseWorld.x - this.x);
+
+        ctx.save();
+        ctx.rotate(aimAngle);
+
+        // Gun Body - Made larger and lighter for visibility
+        ctx.fillStyle = '#444';
+        ctx.fillRect(0.2, -0.15, 0.9, 0.3); // Bigger Barrel
+        ctx.fillStyle = '#666';
+        ctx.fillRect(0.2, -0.08, 0.25, 0.16); // Grip detail
+
+        // Barrel Polish
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 0.05;
+        ctx.strokeRect(0.2, -0.15, 0.9, 0.3);
         ctx.restore();
     }
 }
