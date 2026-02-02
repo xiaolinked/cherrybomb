@@ -166,9 +166,9 @@ export class Game {
                 else if (input.keys['2']) {
                     this.buyUpgrade('firerate', 90);
                 }
-                // 3. Multishot (Cost: 120)
+                // 3. Multishot (Cost: 5)
                 else if (input.keys['3']) {
-                    this.buyUpgrade('multishot', 120);
+                    this.buyUpgrade('multishot', 5);
                 }
                 // 4. Stamina +60 (Cost: 100)
                 else if (input.keys['4']) {
