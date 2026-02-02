@@ -16,7 +16,7 @@ export class Coin extends Entity {
         this.value = value;
         this.isLucky = isLucky;
         this.color = isLucky ? '#FF00FF' : '#FFD700'; // Pink for lucky, Gold otherwise
-        this.radius = isLucky ? 0.35 : 0.25;
+        this.radius = isLucky ? 0.5 : 0.35;
     }
 
     public update(dt: number, game: Game): void {

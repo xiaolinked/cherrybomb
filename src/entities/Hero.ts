@@ -279,6 +279,25 @@ export class Hero extends Entity {
             ctx.scale(1.2, 0.85); // Stretch X, squash Y slightly to preserve volume
         }
 
+        // --- DRAW BLASTER ---
+        const input = InputManager.getInstance();
+        const aimAngle = Math.atan2(input.mouseWorld.y - this.y, input.mouseWorld.x - this.x);
+
+        ctx.save();
+        ctx.rotate(aimAngle);
+
+        // Gun Body
+        ctx.fillStyle = '#333';
+        ctx.fillRect(0.2, -0.12, 0.7, 0.24); // Barrel
+        ctx.fillStyle = '#555';
+        ctx.fillRect(0.2, -0.06, 0.2, 0.12); // Grip detail
+
+        // Barrel Polish
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 0.05;
+        ctx.strokeRect(0.2, -0.12, 0.7, 0.24);
+        ctx.restore();
+
         // Draw Body (Rectangle)
         // VISUAL SPEC: 1.0 wide, 1.4 high
         const w = 1.0;
