@@ -43,9 +43,6 @@ export class Hero extends Entity {
     constructor(x: number, y: number) {
         super(x, y);
         const config = ConfigManager.getConfig();
-        // Base Stats
-        // Note: For now strictly using config values directly
-        // In a real RPG we might have a StatsManager
         this.maxHp = config.hero.base_hp;
         this.hp = this.maxHp;
 
@@ -83,7 +80,6 @@ export class Hero extends Entity {
         // 2. Dash Logic
         if (this.isDashing) {
             this.dashTimer -= dt;
-            // Move fast in dash direction // distance = speed * time
             const dashDist = config.abilities.dash.distance;
             const dashSpeed = dashDist / config.abilities.dash.duration;
 
@@ -111,17 +107,40 @@ export class Hero extends Entity {
         }
 
         // Shooting
-        if (input.mouse.leftDown && this.fireTimer <= 0 && this.reloadTimer <= 0) {
+        let isShooting = false;
+        let aimX = input.mouseWorld.x;
+        let aimY = input.mouseWorld.y;
+
+        if (input.isTouchDevice) {
+            // Use Right Stick
+            if (input.stickRight.active) {
+                const dist = Math.sqrt(input.stickRight.x * input.stickRight.x + input.stickRight.y * input.stickRight.y);
+                if (dist > 0.3) { // Deadzone
+                    isShooting = true;
+                }
+            }
+        } else {
+            // Mouse
+            isShooting = input.mouse.leftDown;
+        }
+
+        if (isShooting && this.fireTimer <= 0 && this.reloadTimer <= 0) {
             if (this.ammo > 0) {
                 this.ammo--;
                 this.fireTimer = config.blaster.fire_rate;
 
+                // Aim Logic
+                let baseAngle = 0;
+                if (input.isTouchDevice && input.stickRight.active) {
+                    baseAngle = Math.atan2(input.stickRight.y, input.stickRight.x);
+                } else {
+                    baseAngle = Math.atan2(aimY - this.y, aimX - this.x);
+                }
+
                 // Multishot Logic
-                const baseAngle = Math.atan2(input.mouseWorld.y - this.y, input.mouseWorld.x - this.x);
                 const spread = config.blaster.multishot_spread_radians;
 
                 for (let i = 0; i < this.multishot; i++) {
-                    // Center the spread
                     const offset = (i - (this.multishot - 1) / 2) * spread;
                     const angle = baseAngle + offset;
                     const targetX = this.x + Math.cos(angle) * config.blaster.multishot_target_distance;
@@ -179,11 +198,6 @@ export class Hero extends Entity {
             this.afterimages[i].alpha -= dt * config.ui.hero.afterimage_fade_rate;
             if (this.afterimages[i].alpha <= 0) this.afterimages.splice(i, 1);
         }
-
-        // 5. Boundary Check (Arena) - Disabled for endless
-        if (!config.arena.is_endless) {
-            // No longer used
-        }
     }
 
     private performPushBack(game: Game) {
@@ -195,16 +209,11 @@ export class Hero extends Entity {
 
         for (const enemy of game.enemies) {
             if (this.distanceTo(enemy) <= radius) {
-                // Calculate direction away from hero
                 const dx = enemy.x - this.x;
                 const dy = enemy.y - this.y;
                 const angle = Math.atan2(dy, dx);
-
-                // Apply push
                 enemy.x += Math.cos(angle) * pushDist;
                 enemy.y += Math.sin(angle) * pushDist;
-
-                // No clamping needed in endless
             }
         }
     }
@@ -212,7 +221,6 @@ export class Hero extends Entity {
     private damageFlashTimer: number = 0;
 
     public takeDamage(amount: number, source?: Bomb) {
-        // Simple Armor reduction (percent)
         const config = ConfigManager.getConfig();
         const reduction = config.hero.armor.damage_reduction_percent;
         const finalDamage = amount * (1.0 - reduction);
@@ -226,7 +234,7 @@ export class Hero extends Entity {
             this.isDead = true;
 
             if (source) {
-                const originalParent = (source as any).originalParent; // We'll set this in Bomb explode
+                const originalParent = (source as any).originalParent;
                 this.killingBlow = {
                     explosionX: source.x,
                     explosionY: source.y,
@@ -244,7 +252,7 @@ export class Hero extends Entity {
     }
 
     public draw(ctx: CanvasRenderingContext2D): void {
-        // Draw afterimages
+        const config = ConfigManager.getConfig();
         for (const img of this.afterimages) {
             ctx.save();
             ctx.translate(img.x, img.y);
@@ -263,9 +271,7 @@ export class Hero extends Entity {
 
         // Visual Push Back Effect
         if (this.pushBackVisualTimer > 0) {
-            const config = ConfigManager.getConfig();
             const radius = config.abilities.push_back.radius;
-
             ctx.beginPath();
             ctx.arc(0, 0, radius, 0, Math.PI * 2);
             ctx.fillStyle = `rgba(255, 255, 255, ${this.pushBackVisualTimer * 2})`; // Fade out
@@ -275,18 +281,12 @@ export class Hero extends Entity {
             ctx.stroke();
         }
 
-        // VISUAL SPEC: Rotation: Fixed (does NOT rotate)
-        // DASH STRETCH: Stretch 1.2x in movement direction
         if (this.isDashing) {
             const angle = Math.atan2(this.dashVector.y, this.dashVector.x);
             ctx.rotate(angle);
-            ctx.scale(1.2, 0.85); // Stretch X, squash Y slightly to preserve volume
+            ctx.scale(1.2, 0.85);
         }
 
-
-
-        // Draw Body (Rectangle)
-        // VISUAL SPEC: 1.0 wide, 1.4 high
         const w = 1.0;
         const h = 1.4;
 
@@ -307,19 +307,23 @@ export class Hero extends Entity {
 
         // --- DRAW BLASTER (On Top) ---
         const input = InputManager.getInstance();
-        const aimAngle = Math.atan2(input.mouseWorld.y - this.y, input.mouseWorld.x - this.x);
+        let aimAngle = 0;
+
+        if (input.isTouchDevice && input.stickRight.active) {
+            aimAngle = Math.atan2(input.stickRight.y, input.stickRight.x);
+        } else {
+            aimAngle = Math.atan2(input.mouseWorld.y - this.y, input.mouseWorld.x - this.x);
+        }
 
         ctx.save();
-        ctx.translate(this.x, this.y); // Fix: Translate back to hero position
+        ctx.translate(this.x, this.y);
         ctx.rotate(aimAngle);
 
-        // Gun Body - Made larger and lighter for visibility
         ctx.fillStyle = '#444';
-        ctx.fillRect(0.2, -0.15, 0.9, 0.3); // Bigger Barrel
+        ctx.fillRect(0.2, -0.15, 0.9, 0.3);
         ctx.fillStyle = '#666';
-        ctx.fillRect(0.2, -0.08, 0.25, 0.16); // Grip detail
+        ctx.fillRect(0.2, -0.08, 0.25, 0.16);
 
-        // Barrel Polish
         ctx.strokeStyle = '#111';
         ctx.lineWidth = 0.05;
         ctx.strokeRect(0.2, -0.15, 0.9, 0.3);

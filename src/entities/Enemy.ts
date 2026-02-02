@@ -37,6 +37,11 @@ export class Enemy extends Entity {
         const config = ConfigManager.getConfig();
         const hero = game.hero;
 
+        if (this.isFadingOut) {
+            this.opacity -= dt * 0.8;
+            if (this.opacity < 0) this.opacity = 0;
+        }
+
         if (!hero) return;
 
         // 1. AI: Simple Follow
@@ -111,6 +116,7 @@ export class Enemy extends Entity {
 
     public draw(ctx: CanvasRenderingContext2D): void {
         ctx.save();
+        ctx.globalAlpha = this.opacity;
         ctx.translate(this.x, this.y);
 
         // Bloom Effect
@@ -122,7 +128,7 @@ export class Enemy extends Entity {
         if (this.shield > 0) {
             ctx.save();
             ctx.strokeStyle = '#4DFFF3';
-            ctx.globalAlpha = 0.7;
+            ctx.globalAlpha = 0.7 * this.opacity; // Multiply by entity opacity
             ctx.lineWidth = 0.05;
             ctx.beginPath();
             ctx.arc(0, 0, 1.6, 0, Math.PI * 2);

@@ -6,6 +6,7 @@ export enum WaveState {
     READY,      // Before Wave 1
     COUNTDOWN,  // 3..2..1 before wave
     WAVE,       // Playing
+    WAVE_COMPLETE, // 2s pause with message
     SHOP        // Intermission
 }
 
@@ -50,6 +51,12 @@ export class WaveManager {
                     this.updateTelegraphs(dt);
                 }
                 break;
+            case WaveState.WAVE_COMPLETE:
+                this.stateTimer -= dt;
+                if (this.stateTimer <= 0) {
+                    this.openShop();
+                }
+                break;
             case WaveState.SHOP:
                 // Wait for external Space input
                 break;
@@ -83,8 +90,24 @@ export class WaveManager {
     }
 
     private endWave() {
+        this.state = WaveState.WAVE_COMPLETE;
+        this.stateTimer = 2.0;
+        console.log("Wave Ended! Fading out...");
+
+        // Trigger Fade Out
+        this.game.enemies.forEach(e => {
+            e.isFadingOut = true;
+            if (e.bomb) e.bomb.isFadingOut = true;
+        });
+        this.game.coins.forEach(c => c.isFadingOut = true);
+        this.game.bombs.forEach(b => b.isFadingOut = true);
+        this.game.bullets.forEach(b => b.isFadingOut = true); // Fade bullets
+        this.activeTelegraphs = [];
+    }
+
+    private openShop() {
         this.state = WaveState.SHOP;
-        console.log("Wave Ended! Shop Open.");
+        console.log("Shop Open.");
 
         // Auto-Heal Hero & Refill Stamina
         this.game.hero.hp = this.game.hero.maxHp;
@@ -95,6 +118,7 @@ export class WaveManager {
         this.game.enemies = [];
         this.game.bombs = [];
         this.game.coins = [];
+        this.game.bullets = []; // Clear bullets
         this.activeTelegraphs = [];
 
         this.game.generateUpgradeOptions();
@@ -160,6 +184,10 @@ export class WaveManager {
     // Helpers for other classes
     public get isWaveActive(): boolean {
         return this.state === WaveState.WAVE;
+    }
+
+    public get isWaveComplete(): boolean {
+        return this.state === WaveState.WAVE_COMPLETE;
     }
 
     public get isShopOpen(): boolean {

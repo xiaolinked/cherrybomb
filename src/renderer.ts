@@ -99,7 +99,7 @@ export class Renderer {
         }
 
         this.drawTelegraphs(game);
-        this.drawEnemyBars(game);
+        this.drawEnemyBars(entities.enemies);
 
         this.ctx.restore(); // Back to screen space
 
@@ -112,11 +112,8 @@ export class Renderer {
 
         this.drawUI(game);
 
-        // Draw Mobile Controls
+        // Mobile Controls
         this.drawMobileControls();
-
-        // Draw Virtual Joystick
-        this.drawJoystick();
 
         if (game.deathHighlightTimer > 0) {
             this.drawDeathClarity(game);
@@ -130,7 +127,6 @@ export class Renderer {
         const config = ConfigManager.getConfig();
         const gridSize = config.arena.grid_size || 2;
 
-        // Calculate bounds in world space
         const halfWidth = (this.width / 2) / this.pixelsPerUnit;
         const halfHeight = (this.height / 2) / this.pixelsPerUnit;
 
@@ -160,48 +156,42 @@ export class Renderer {
 
     private drawScanlines() {
         const ctx = this.ctx;
-
         ctx.save();
-        ctx.globalCompositeOperation = 'overlay'; // Blend mode for subtlety
+        ctx.globalCompositeOperation = 'overlay';
 
-        // Scanlines
         ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
         for (let y = 0; y < this.height; y += 4) {
             ctx.fillRect(0, y, this.width, 2);
         }
 
-        // Vignette
         const grad = ctx.createRadialGradient(
             this.width / 2, this.height / 2, this.height * 0.4,
             this.width / 2, this.height / 2, this.height * 0.9
         );
         grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        grad.addColorStop(1, 'rgba(0, 0, 0, 0.6)'); // Darken corners
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
 
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, this.width, this.height);
-
         ctx.restore();
     }
-
 
     private drawUI(game: Game) {
         const ctx = this.ctx;
         const waveMgr = game.waveManager;
 
         ctx.save();
-        ctx.resetTransform(); // Draw UI in screen space
+        ctx.resetTransform();
 
         const width = this.ctx.canvas.width;
         const height = this.ctx.canvas.height;
         const centerX = width / 2;
 
-        // Low Health Warning (Red Pulsing Vignette)
         if (game.hero && !game.hero.isDead) {
             const hpPct = game.hero.hp / game.hero.maxHp;
             if (hpPct <= 0.3) {
-                const pulse = (Math.sin(performance.now() / 200) + 1) / 2; // 0 to 1 pulsing
-                const opacity = 0.1 + pulse * 0.4; // 10% to 50% opacity
+                const pulse = (Math.sin(performance.now() / 200) + 1) / 2;
+                const opacity = 0.1 + pulse * 0.4;
 
                 const grad = ctx.createRadialGradient(
                     centerX, height / 2, 0,
@@ -213,34 +203,39 @@ export class Renderer {
                 ctx.fillStyle = grad;
                 ctx.fillRect(0, 0, width, height);
 
-                // Optional: Thin red border for extra emphasis
                 ctx.strokeStyle = `rgba(255, 0, 0, ${opacity})`;
                 ctx.lineWidth = 10;
                 ctx.strokeRect(0, 0, width, height);
             }
         }
 
-        // 0. Score & Coins (Top Left / Right)
         ctx.font = 'bold 24px monospace';
         ctx.textAlign = 'left';
         ctx.fillStyle = '#FFF';
         ctx.fillText(`SCORE: ${game.score}`, 20, 40);
 
-        ctx.fillStyle = '#FFD700'; // Gold
+        ctx.fillStyle = '#FFD700';
         ctx.fillText(`COINS: ${game.coinCount}`, 20, 70);
 
-        // 1. Wave Status (Top Center)
         ctx.textAlign = 'center';
-        ctx.font = 'bold 30px monospace'; // monospace for timer
+        ctx.font = 'bold 30px monospace';
 
         if (waveMgr.isWaveActive) {
             ctx.fillStyle = '#FFFFFF';
-            if (waveMgr.stateTimer <= 5) ctx.fillStyle = '#FF0000'; // Warning
-            ctx.fillText(waveMgr.stateTimer.toFixed(1), centerX, 40); // Use stateTimer
+            if (waveMgr.stateTimer <= 5) ctx.fillStyle = '#FF0000';
+            ctx.fillText(waveMgr.stateTimer.toFixed(1), centerX, 40);
 
             ctx.font = '20px sans-serif';
             ctx.fillStyle = '#AAAAAA';
             ctx.fillText(`WAVE ${waveMgr.currentWave}`, centerX, 70);
+        }
+        else if (waveMgr.isWaveComplete) {
+            ctx.fillStyle = '#4DFFF3';
+            ctx.font = 'bold 60px monospace';
+            ctx.shadowColor = '#4DFFF3';
+            ctx.shadowBlur = 20;
+            ctx.fillText("WAVE COMPLETE", centerX, height / 2);
+            ctx.shadowBlur = 0;
         }
         else if (waveMgr.isCountdown) {
             ctx.fillStyle = '#FFFF00';
@@ -252,36 +247,31 @@ export class Renderer {
             ctx.fillText("GET READY!", centerX, 40);
         }
         else if (waveMgr.isReady) {
-            // Game Title
             ctx.fillStyle = '#FF0000';
             ctx.font = 'bold 80px sans-serif';
-            ctx.textAlign = 'center';
             ctx.fillText("HOT ZONE", centerX, height / 2 - 120);
 
-            // Subtitle
             ctx.fillStyle = '#FFFFFF';
             ctx.font = 'bold 24px sans-serif';
             ctx.fillText("MADE BY ANTON LI USING AI", centerX, height / 2 - 80);
 
-            this.drawButton(centerX, height / 2, 280, 55, "START GAME", "#00FF00");
+            const startBtnY = height / 2;
+            this.drawButton(centerX, startBtnY, 280, 55, "START GAME", "#00FF00");
 
             const input = InputManager.getInstance();
             ctx.font = '20px sans-serif';
             ctx.fillStyle = '#AAA';
-            ctx.textAlign = 'center';
             if (input.isTouchDevice) {
-                ctx.fillText("Touch Left Side to Move, Right Side to Aim", centerX, height / 2 + 60);
-                ctx.fillText("Tap Buttons for Actions", centerX, height / 2 + 85);
+                ctx.fillText("Touch Left Side to Move, Right Side to Aim", centerX, startBtnY + 80);
+                ctx.fillText("Tap Buttons for Actions", centerX, startBtnY + 110);
             } else {
-                ctx.fillText("WASD/Arrows to Move, Mouse to Aim", centerX, height / 2 + 60);
+                ctx.fillText("WASD/Arrows to Move, Mouse to Aim", centerX, startBtnY + 80);
             }
         }
         else if (waveMgr.isShopOpen) {
-            // SHOP UI
             ctx.fillStyle = '#FFFF00';
             ctx.fillText("SHOP OPEN", centerX, 40);
 
-            // Next Wave Button
             this.drawButton(centerX, 85, 220, 45, "NEXT WAVE", "#FFFF00");
 
             const startY = 150;
@@ -298,7 +288,6 @@ export class Renderer {
                 const x = startX + i * (cardWidth + spacing);
                 const y = startY;
 
-                // Card BG
                 const input = InputManager.getInstance();
                 const mx = input.mouse.x;
                 const my = input.mouse.y;
@@ -310,41 +299,29 @@ export class Renderer {
                 ctx.fillRect(x, y, cardWidth, cardHeight);
                 ctx.strokeRect(x, y, cardWidth, cardHeight);
 
-                // Option Number
                 ctx.fillStyle = '#FFFF00';
                 ctx.font = 'bold 18px monospace';
-                ctx.textAlign = 'center';
                 ctx.fillText(`[${i + 1}]`, x + cardWidth / 2, y + 25);
 
-                // Name
                 ctx.fillStyle = '#FFF';
                 ctx.font = 'bold 16px sans-serif';
                 ctx.fillText(opt.name, x + cardWidth / 2, y + 50);
 
-                // Description
                 ctx.font = '14px sans-serif';
                 ctx.fillStyle = '#AAA';
                 ctx.fillText(opt.description, x + cardWidth / 2, y + 75);
 
-                // Cost
                 ctx.font = 'bold 16px monospace';
                 ctx.fillStyle = game.coinCount >= opt.cost ? '#00FF00' : '#FF0000';
                 ctx.fillText(`$${opt.cost} `, x + cardWidth / 2, y + 105);
             }
-
-            ctx.textAlign = 'center'; // Reset for other draws
         }
 
-        // 2. Hero HUD (Bottom Center)
         if (game.hero) {
-            ctx.save();
-            ctx.textAlign = 'center';
-
-            // --- HUD BACKING PLATE ---
             const plateWidth = 240;
             const plateHeight = 110;
             const plateX = centerX - plateWidth / 2;
-            const plateY = height - plateHeight - 15; // Raised 15px from bottom
+            const plateY = height - plateHeight - 15;
 
             ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
             ctx.beginPath();
@@ -354,87 +331,50 @@ export class Renderer {
             ctx.lineWidth = 1;
             ctx.stroke();
 
-            // Labels Global Config
-            ctx.shadowBlur = 4;
-            ctx.shadowColor = 'rgba(0,0,0,1)';
-
-            // --- 4. AMMO (Top Bar) ---
             const ammoY = plateY + 25;
             const ammoPct = game.hero.ammo / game.hero.maxAmmo;
-
-            ctx.fillStyle = '#FFFF00'; // Yellow Label
+            ctx.fillStyle = '#FFFF00';
             ctx.font = 'bold 12px monospace';
             ctx.fillText("AMMO", centerX, ammoY - 12);
-
-            ctx.shadowBlur = 0;
             ctx.fillStyle = '#333';
-            ctx.fillRect(centerX - 100, ammoY, 200, 10); // BG
+            ctx.fillRect(centerX - 100, ammoY, 200, 10);
 
             if (game.hero.reloadTimer > 0) {
                 const flash = Math.sin(performance.now() / 100) * 0.5 + 0.5;
-                ctx.fillStyle = `rgba(255, 255, 0, ${flash})`; // Yellow Flash
+                ctx.fillStyle = `rgba(255, 255, 0, ${flash})`;
                 ctx.fillRect(centerX - 100, ammoY, 200, 10);
-
-                ctx.fillStyle = '#FFF';
-                ctx.font = 'bold 10px sans-serif';
-                ctx.fillText("RELOADING...", centerX, ammoY + 8);
             } else {
-                ctx.fillStyle = '#FFFF00'; // Yellow Bar
+                ctx.fillStyle = '#FFFF00';
                 ctx.fillRect(centerX - 100, ammoY, 200 * ammoPct, 10);
-
-                // Segmented lines
-                ctx.strokeStyle = '#000';
-                ctx.lineWidth = 1;
-                for (let i = 1; i < game.hero.maxAmmo; i++) {
-                    const xPos = (centerX - 100) + (200 / game.hero.maxAmmo) * i;
-                    ctx.beginPath();
-                    ctx.moveTo(xPos, ammoY);
-                    ctx.lineTo(xPos, ammoY + 10);
-                    ctx.stroke();
-                }
             }
             ctx.strokeStyle = '#FFF';
             ctx.strokeRect(centerX - 100, ammoY, 200, 10);
 
-            // --- 3. STAMINA (Middle Bar) ---
             const stamY = plateY + 55;
             const stamPct = game.hero.stamina / game.hero.maxStamina;
-
-            ctx.shadowBlur = 4;
-            ctx.fillStyle = '#5DADE2'; // Blue Label
-            ctx.font = 'bold 12px monospace';
+            ctx.fillStyle = '#5DADE2';
             ctx.fillText("STAMINA", centerX, stamY - 8);
-
-            ctx.shadowBlur = 0;
             ctx.fillStyle = '#333';
-            ctx.fillRect(centerX - 100, stamY, 200, 8); // BG
-            ctx.fillStyle = '#2E86C1'; // Blue Bar
+            ctx.fillRect(centerX - 100, stamY, 200, 8);
+            ctx.fillStyle = '#2E86C1';
             ctx.fillRect(centerX - 100, stamY, 200 * stamPct, 8);
             ctx.strokeStyle = '#FFF';
             ctx.strokeRect(centerX - 100, stamY, 200, 8);
 
-            // --- 2. HEALTH (Bottom Bar) ---
             const healthY = plateY + 85;
             const hpPct = game.hero.hp / game.hero.maxHp;
-
-            ctx.shadowBlur = 4;
-            ctx.fillStyle = '#2ECC71'; // Green Label
+            ctx.fillStyle = '#2ECC71';
             ctx.font = 'bold 14px monospace';
             ctx.fillText("HEALTH", centerX, healthY - 10);
-
-            ctx.shadowBlur = 0;
             ctx.fillStyle = '#555';
-            ctx.fillRect(centerX - 100, healthY, 200, 15); // BG
-            ctx.fillStyle = hpPct > 0.3 ? '#27AE60' : '#FF0000'; // Green Bar (Red if low)
+            ctx.fillRect(centerX - 100, healthY, 200, 15);
+            ctx.fillStyle = hpPct > 0.3 ? '#27AE60' : '#FF0000';
             ctx.fillRect(centerX - 100, healthY, 200 * hpPct, 15);
             ctx.lineWidth = 2;
             ctx.strokeStyle = '#FFF';
             ctx.strokeRect(centerX - 100, healthY, 200, 15);
-
-            ctx.restore();
         }
 
-        // Game Over Overlay
         if (game.hero.isDead) {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
             ctx.fillRect(0, 0, width, height);
@@ -442,62 +382,41 @@ export class Renderer {
             ctx.fillStyle = '#FF0000';
             ctx.font = 'bold 60px sans-serif';
             ctx.fillText("YOU DIED", centerX, height / 2);
-            ctx.font = '30px sans-serif';
-            ctx.fillStyle = '#FFF';
-            const input = InputManager.getInstance();
-            const restartText = input.isTouchDevice ? "Tap to Restart" : "Press SPACE to Restart";
-            ctx.fillText(restartText, centerX, height / 2 + 50);
+
+            this.drawButton(centerX, height / 2 + 80, 200, 60, "RESTART", "#FFFFFF");
         }
 
-        // Draw Enemy HP Bars (World Space -> Screen Space? No, usually world space above entity)
-        // Check render method: transform is reset for drawUI. To draw above enemies, we need world coordinates.
-        // Option A: Use another world-space pass. Option B: Project coords.
-        // Let's do a world space pass in the main render method instead of drawUI.
         ctx.restore();
     }
 
-    private drawEnemyBars(game: any) {
+    private drawEnemyBars(enemies: any[]) {
         const ctx = this.ctx;
-        const entities = game.getEntities();
-
         ctx.save();
-        // Transform already applied by caller (render method)
-
         ctx.font = '0.5px sans-serif';
         ctx.textAlign = 'center';
 
-        for (const enemy of entities.enemies) {
+        for (const enemy of enemies) {
+            if ((enemy as any).isFadingOut) continue;
             ctx.save();
             ctx.translate(enemy.x, enemy.y);
-
-            // Bar Dimensions
             const w = 1.0;
             const h = 0.15;
             const yOffset = -0.8;
-
-            // Background
             ctx.fillStyle = '#333';
             ctx.fillRect(-w / 2, yOffset, w, h);
 
             if (enemy.shield > 0) {
-                // Shield Bar
-                const pct = enemy.shield / enemy.maxShield;
                 ctx.fillStyle = '#00FFFF';
-                ctx.fillRect(-w / 2, yOffset, w * pct, h);
+                ctx.fillRect(-w / 2, yOffset, w * (enemy.shield / enemy.maxShield), h);
             } else {
-                // HP Bar
-                const pct = enemy.hp / enemy.maxHp;
                 ctx.fillStyle = '#FF0000';
-                ctx.fillRect(-w / 2, yOffset, w * pct, h);
+                ctx.fillRect(-w / 2, yOffset, w * (enemy.hp / enemy.maxHp), h);
             }
-
             ctx.strokeStyle = '#FFF';
             ctx.lineWidth = 0.02;
             ctx.strokeRect(-w / 2, yOffset, w, h);
-
             ctx.restore();
         }
-
         ctx.restore();
     }
 
@@ -511,9 +430,7 @@ export class Renderer {
         if (!kb) return;
 
         const ctx = this.ctx;
-
         ctx.save();
-        // 1. Darken screen (tint everything darker)
         ctx.resetTransform();
         ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.fillRect(0, 0, this.width, this.height);
@@ -523,16 +440,13 @@ export class Renderer {
         ctx.translate(this.width / 2, this.height / 2);
         ctx.scale(this.pixelsPerUnit, this.pixelsPerUnit);
 
-        // 2. Thick red outline ring at explosion radius
         ctx.beginPath();
         ctx.arc(kb.explosionX, kb.explosionY, kb.radius, 0, Math.PI * 2);
         ctx.strokeStyle = '#FF0000';
-        ctx.lineWidth = 0.15; // Thick
+        ctx.lineWidth = 0.15;
         ctx.stroke();
 
-        // 3. Cause Line / Ghost
         if (kb.enemyInfo) {
-            // Line from explosion center to enemy
             ctx.beginPath();
             ctx.moveTo(kb.explosionX, kb.explosionY);
             ctx.lineTo(kb.enemyInfo.x, kb.enemyInfo.y);
@@ -540,11 +454,10 @@ export class Renderer {
             ctx.lineWidth = 0.05;
             ctx.stroke();
 
-            // Ghosted Triangle
             ctx.save();
             ctx.translate(kb.enemyInfo.x, kb.enemyInfo.y);
             ctx.rotate(kb.enemyInfo.angle);
-            ctx.fillStyle = 'rgba(255, 216, 77, 0.4)'; // Yellow ghost
+            ctx.fillStyle = 'rgba(255, 216, 77, 0.4)';
             ctx.beginPath();
             const h = 1.4;
             const b = 1.2;
@@ -555,7 +468,6 @@ export class Renderer {
             ctx.fill();
             ctx.restore();
         } else if (kb.isDetached) {
-            // Highlight detached bomb with pulse
             const pulse = 1.0 + Math.sin(performance.now() / 100) * 0.15;
             ctx.save();
             ctx.translate(kb.explosionX, kb.explosionY);
@@ -566,7 +478,6 @@ export class Renderer {
             ctx.fill();
             ctx.restore();
         }
-
         ctx.restore();
     }
 
@@ -577,33 +488,21 @@ export class Renderer {
         for (const t of telegraphs) {
             ctx.save();
             ctx.translate(t.x, t.y);
-
-            // Pulsing Scale & Alpha
             const pulse = Math.sin(Date.now() * 0.015);
             const scale = 0.7 + pulse * 0.2;
             ctx.scale(scale, scale);
-
-            // Draw Red X
             ctx.strokeStyle = '#FF0000';
             ctx.lineWidth = 0.4;
-            ctx.lineCap = 'round';
-
             const size = 1.5;
             ctx.beginPath();
-            ctx.moveTo(-size, -size);
-            ctx.lineTo(size, size);
-            ctx.moveTo(size, -size);
-            ctx.lineTo(-size, size);
+            ctx.moveTo(-size, -size); ctx.lineTo(size, size);
+            ctx.moveTo(size, -size); ctx.lineTo(-size, size);
             ctx.stroke();
-
-            // Glow Aura
             ctx.globalAlpha = 0.3 + pulse * 0.1;
             ctx.fillStyle = '#FF0000';
             ctx.beginPath();
             ctx.arc(0, 0, size, 0, Math.PI * 2);
             ctx.fill();
-            ctx.globalAlpha = 1.0;
-
             ctx.restore();
         }
     }
@@ -612,50 +511,85 @@ export class Renderer {
         const ctx = this.ctx;
         ctx.save();
         ctx.translate(x - w / 2, y - h / 2);
-
-        // Hover effect (simple)
         const input = InputManager.getInstance();
-        const mx = input.mouse.x;
-        const my = input.mouse.y;
-        const isHover = mx >= x - w / 2 && mx <= x + w / 2 && my >= y - h / 2 && my <= y + h / 2;
+        const isHover = input.mouse.x >= x - w / 2 && input.mouse.x <= x + w / 2 &&
+            input.mouse.y >= y - h / 2 && input.mouse.y <= y + h / 2;
 
         ctx.fillStyle = isHover ? color : 'rgba(0, 0, 0, 0.5)';
         ctx.strokeStyle = color;
         ctx.lineWidth = 3;
-
         ctx.fillRect(0, 0, w, h);
         ctx.strokeRect(0, 0, w, h);
-
         ctx.fillStyle = isHover ? '#000' : color;
         ctx.font = 'bold 24px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(text, w / 2, h / 2);
-
         ctx.restore();
     }
 
     private drawMobileControls() {
         const input = InputManager.getInstance();
-        // Only draw if we are on a touch-enabled device
         if (!input.isTouchDevice) return;
 
-        const w = this.width;
-        const h = this.height;
-
-        this.drawCircleButton(w - 80, h - 80, 45, "DASH", "#FFF");
-        this.drawCircleButton(w - 80, h - 190, 40, "RELOAD", "#FFFF00");
-        this.drawCircleButton(w - 180, h - 80, 40, "PUSH", "#00FFFF");
-    }
-
-    private drawCircleButton(x: number, y: number, r: number, label: string, color: string) {
         const ctx = this.ctx;
         ctx.save();
         ctx.resetTransform();
 
+        // Left Stick
+        if (input.stickLeft.active) {
+            const { originX, originY, x, y } = input.stickLeft;
+            ctx.beginPath();
+            ctx.arc(originX, originY, 40, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            const stickX = originX + x * 50;
+            const stickY = originY + y * 50;
+            ctx.beginPath();
+            ctx.arc(stickX, stickY, 20, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.fill();
+        }
+
+        // Right Stick
+        if (input.stickRight.active) {
+            const { originX, originY, x, y } = input.stickRight;
+            ctx.beginPath();
+            ctx.arc(originX, originY, 40, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 50, 50, 0.1)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255, 50, 50, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            const stickX = originX + x * 50;
+            const stickY = originY + y * 50;
+            ctx.beginPath();
+            ctx.arc(stickX, stickY, 20, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 50, 50, 0.5)';
+            ctx.fill();
+        }
+
+        // Action Buttons
+        const w = this.width;
+        const h = this.height;
+        this.drawCircleButton(w - 80, h - 80, 45, "DASH", "#FFF", input.buttons.dash);
+        this.drawCircleButton(w - 80, h - 190, 40, "RELOAD", "#FFFF00", input.buttons.reload);
+        this.drawCircleButton(w - 180, h - 80, 40, "PUSH", "#00FFFF", input.buttons.pushBack);
+
+        ctx.restore();
+    }
+
+    private drawCircleButton(x: number, y: number, r: number, label: string, color: string, active: boolean) {
+        const ctx = this.ctx;
+        ctx.save();
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.fillStyle = active ? `rgba(${this.hexToRgb(color)}, 0.5)` : 'rgba(255, 255, 255, 0.15)';
         ctx.strokeStyle = color;
         ctx.lineWidth = 3;
         ctx.fill();
@@ -666,38 +600,14 @@ export class Renderer {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(label, x, y);
-
         ctx.restore();
     }
 
-    private drawJoystick() {
-        const input = InputManager.getInstance();
-        if (!input.joystick.active) return;
-
-        const ctx = this.ctx;
-        const origin = input.joystick.origin;
-        // 50 is the maxDist we used in InputManager
-        const currentX = origin.x + input.joystick.x * 50;
-        const currentY = origin.y + input.joystick.y * 50;
-
-        ctx.save();
-        ctx.resetTransform(); // Screen space
-
-        // Base
-        ctx.beginPath();
-        ctx.arc(origin.x, origin.y, 50, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.lineWidth = 2;
-        ctx.fill();
-        ctx.stroke();
-
-        // Knob
-        ctx.beginPath();
-        ctx.arc(currentX, currentY, 20, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.fill();
-
-        ctx.restore();
+    private hexToRgb(hex: string): string {
+        // Simple hex to rgb for rgba conversion
+        if (hex === "#FFF") return "255, 255, 255";
+        if (hex === "#FFFF00") return "255, 255, 0";
+        if (hex === "#00FFFF") return "0, 255, 255";
+        return "255, 255, 255";
     }
 }
