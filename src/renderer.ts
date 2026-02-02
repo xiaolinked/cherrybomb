@@ -267,6 +267,7 @@ export class Renderer {
             } else {
                 ctx.fillText("WASD/Arrows to Move, Mouse to Aim", centerX, startBtnY + 80);
             }
+
         }
         else if (waveMgr.isShopOpen) {
             ctx.fillStyle = '#FFFF00';

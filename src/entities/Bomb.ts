@@ -57,6 +57,16 @@ export class Bomb extends Entity {
             return;
         }
 
+        // 0. Contact Detonation (Instant) - If touching Hero
+        if (this.state !== BombState.DEAD) {
+            const distToHero = this.distanceTo(game.hero);
+            // Hero ~0.5 + Bomb ~0.35 = 0.85 approx contact
+            if (distToHero < 0.8) {
+                this.explode(game);
+                return;
+            }
+        }
+
         // 1. Position Logic
         if (this.parent) {
             // Stick to parent's back (offset)

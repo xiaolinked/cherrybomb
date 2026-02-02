@@ -11,7 +11,7 @@ export class Enemy extends Entity {
 
     public bomb: Bomb | null = null;
 
-    private speed: number;
+    protected speed: number;
 
     constructor(x: number, y: number) {
         super(x, y);

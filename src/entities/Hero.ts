@@ -119,6 +119,10 @@ export class Hero extends Entity {
                     isShooting = true;
                 }
             }
+            // Also check mouse if stick is not active (Hybrid/Chromebook support)
+            if (!isShooting && input.mouse.leftDown) {
+                isShooting = true;
+            }
         } else {
             // Mouse
             isShooting = input.mouse.leftDown;

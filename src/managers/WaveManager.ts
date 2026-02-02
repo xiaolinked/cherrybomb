@@ -1,6 +1,8 @@
 import { Game } from "../game";
 import { ConfigManager } from "../config";
 import { Enemy } from "../entities/Enemy";
+import { FastEnemy } from "../entities/FastEnemy";
+import { TankEnemy } from "../entities/TankEnemy";
 
 export enum WaveState {
     READY,      // Before Wave 1
@@ -163,42 +165,56 @@ export class WaveManager {
         });
     }
 
+
+
     private spawnEnemyAt(x: number, y: number) {
-        const config = ConfigManager.getConfig();
-        const enemy = new Enemy(x, y);
+    const config = ConfigManager.getConfig();
 
-        // Apply Wave Scaling
-        if (this.currentWave > 1) {
-            const hpMult = Math.pow(config.enemy.scaling.hp_per_wave, this.currentWave - 1);
-            const shieldMult = Math.pow(config.enemy.scaling.shield_per_wave, this.currentWave - 1);
+    const rand = Math.random();
+    let enemy: Enemy;
 
-            enemy.maxHp *= hpMult;
-            enemy.hp = enemy.maxHp;
-            enemy.maxShield *= shieldMult;
-            enemy.shield = enemy.maxShield;
-        }
-
-        this.game.enemies.push(enemy);
+    // 20% Tank, 30% Fast, 50% Normal
+    // Adjust for wave difficulty? For now static mix.
+    if (rand < 0.2) {
+        enemy = new TankEnemy(x, y);
+    } else if (rand < 0.5) {
+        enemy = new FastEnemy(x, y);
+    } else {
+        enemy = new Enemy(x, y);
     }
+
+    // Apply Wave Scaling
+    if (this.currentWave > 1) {
+        const hpMult = Math.pow(config.enemy.scaling.hp_per_wave, this.currentWave - 1);
+        const shieldMult = Math.pow(config.enemy.scaling.shield_per_wave, this.currentWave - 1);
+
+        enemy.maxHp *= hpMult;
+        enemy.hp = enemy.maxHp;
+        enemy.maxShield *= shieldMult;
+        enemy.shield = enemy.maxShield;
+    }
+
+    this.game.enemies.push(enemy);
+}
 
     // Helpers for other classes
     public get isWaveActive(): boolean {
-        return this.state === WaveState.WAVE;
-    }
+    return this.state === WaveState.WAVE;
+}
 
     public get isWaveComplete(): boolean {
-        return this.state === WaveState.WAVE_COMPLETE;
-    }
+    return this.state === WaveState.WAVE_COMPLETE;
+}
 
     public get isShopOpen(): boolean {
-        return this.state === WaveState.SHOP;
-    }
+    return this.state === WaveState.SHOP;
+}
 
     public get isCountdown(): boolean {
-        return this.state === WaveState.COUNTDOWN;
-    }
+    return this.state === WaveState.COUNTDOWN;
+}
 
     public get isReady(): boolean {
-        return this.state === WaveState.READY;
-    }
+    return this.state === WaveState.READY;
+}
 }

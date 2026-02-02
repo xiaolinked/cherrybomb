@@ -17,8 +17,11 @@ export class InputManager {
     public buttons: { [key: string]: boolean } = { dash: false, pushBack: false };
 
     private constructor() {
-        // Feature detection for touch
-        this.isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        // Feature detection for touch + Mobile Check + Chromebook Support
+        this.isTouchDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+            window.innerWidth < 800 ||
+            ('ontouchstart' in window) ||
+            ((navigator.maxTouchPoints || 0) > 0);
 
         window.addEventListener('keydown', (e) => this.keys[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', (e) => this.keys[e.key.toLowerCase()] = false);
