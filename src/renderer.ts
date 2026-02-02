@@ -156,6 +156,30 @@ export class Renderer {
         const height = this.ctx.canvas.height;
         const centerX = width / 2;
 
+        // Low Health Warning (Red Pulsing Vignette)
+        if (game.hero && !game.hero.isDead) {
+            const hpPct = game.hero.hp / game.hero.maxHp;
+            if (hpPct <= 0.2) {
+                const pulse = (Math.sin(performance.now() / 200) + 1) / 2; // 0 to 1 pulsing
+                const opacity = 0.1 + pulse * 0.4; // 10% to 50% opacity
+
+                const grad = ctx.createRadialGradient(
+                    centerX, height / 2, 0,
+                    centerX, height / 2, Math.sqrt(centerX * centerX + (height / 2) * (height / 2))
+                );
+                grad.addColorStop(0.6, 'rgba(255, 0, 0, 0)');
+                grad.addColorStop(1, `rgba(255, 0, 0, ${opacity})`);
+
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, width, height);
+
+                // Optional: Thin red border for extra emphasis
+                ctx.strokeStyle = `rgba(255, 0, 0, ${opacity})`;
+                ctx.lineWidth = 10;
+                ctx.strokeRect(0, 0, width, height);
+            }
+        }
+
         // 0. Score & Coins (Top Left / Right)
         ctx.font = 'bold 24px monospace';
         ctx.textAlign = 'left';
