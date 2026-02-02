@@ -12,6 +12,7 @@ export class Enemy extends Entity {
     public bomb: Bomb | null = null;
 
     protected speed: number;
+    protected chargeSpeed: number;
 
     constructor(x: number, y: number) {
         super(x, y);
@@ -24,6 +25,7 @@ export class Enemy extends Entity {
         this.shield = this.maxShield;
 
         this.speed = config.enemy.movement.walk_speed;
+        this.chargeSpeed = config.enemy.movement.charge_speed;
         this.radius = config.enemy.radius;
         this.color = '#FFD84D'; // Yellow
 
@@ -59,8 +61,8 @@ export class Enemy extends Entity {
 
             // Speed Selection (Charge if Armed)
             let moveSpeed = this.speed;
-            if (this.bomb && this.bomb.state === BombState.ARMED) { // BombState.ARMED
-                moveSpeed = config.enemy.movement.charge_speed;
+            if (this.bomb && this.bomb.state === BombState.ARMED) {
+                moveSpeed = this.chargeSpeed;
             }
 
             // Move

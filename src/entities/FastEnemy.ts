@@ -11,7 +11,8 @@ export class FastEnemy extends Enemy {
         this.maxShield = 20;
         this.shield = this.maxShield;
 
-        this.speed = 4.0; // Very fast (Base is ~1.5)
+        this.speed = 6.0; // Very fast (Base is ~1.5)
+        this.chargeSpeed = 10.0; // Extremely fast when armed
 
         this.color = '#FF3333'; // Bright Red
         this.radius = 0.5; // Slightly smaller
