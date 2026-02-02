@@ -42,6 +42,11 @@ export class Bomb extends Entity {
     public update(dt: number, game: Game): void {
         const config = ConfigManager.getConfig();
 
+        if (this.isFadingOut) {
+            this.opacity -= dt * 0.8;
+            if (this.opacity < 0) this.opacity = 0;
+        }
+
         // 0. Explosion Logic
         if (this.state === BombState.EXPLODING) {
             this.explosionTimer -= dt;
@@ -190,6 +195,9 @@ export class Bomb extends Entity {
         if (this.state === BombState.DEAD) return;
 
         ctx.save();
+        if (this.state !== BombState.EXPLODING) {
+            ctx.globalAlpha = this.opacity;
+        }
         ctx.translate(this.x, this.y);
 
         if (this.state === BombState.EXPLODING) {

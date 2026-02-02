@@ -105,12 +105,13 @@ export class Renderer {
 
         // --- Atmospheric Dimming (Conditional) ---
         // Only dim when in intermissions (Ready/Shop)
-        if (game.waveManager.isShopOpen || game.waveManager.isReady) {
+        if (game.waveManager.isShopOpen || game.waveManager.isReady || game.waveManager.isWaveComplete) {
             this.ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
             this.ctx.fillRect(0, 0, this.width, this.height);
         }
 
         this.drawUI(game);
+        this.drawJoysticks();
 
         if (game.deathHighlightTimer > 0) {
             this.drawDeathClarity(game);
@@ -174,6 +175,62 @@ export class Renderer {
 
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, this.width, this.height);
+
+        ctx.restore();
+    }
+    private drawJoysticks() {
+        const input = InputManager.getInstance();
+        if (!input.isMobile) return;
+
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.resetTransform();
+
+        // Left Stick
+        if (input.stickLeft.active) {
+            const { originX, originY, x, y } = input.stickLeft;
+
+            // Base
+            ctx.beginPath();
+            ctx.arc(originX, originY, 40, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Stick Top
+            const stickX = originX + x * 50;
+            const stickY = originY + y * 50;
+
+            ctx.beginPath();
+            ctx.arc(stickX, stickY, 20, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.fill();
+        }
+
+        // Right Stick
+        if (input.stickRight.active) {
+            const { originX, originY, x, y } = input.stickRight;
+
+            // Base
+            ctx.beginPath();
+            ctx.arc(originX, originY, 40, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 50, 50, 0.1)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255, 50, 50, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Stick Top
+            const stickX = originX + x * 50;
+            const stickY = originY + y * 50;
+
+            ctx.beginPath();
+            ctx.arc(stickX, stickY, 20, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 50, 50, 0.5)';
+            ctx.fill();
+        }
 
         ctx.restore();
     }
@@ -263,6 +320,14 @@ export class Renderer {
             ctx.fillStyle = '#AAA';
             ctx.textAlign = 'center';
             ctx.fillText("WASD/Arrows to Move, Mouse to Aim", centerX, height / 2 + 60);
+        }
+        else if (waveMgr.isWaveComplete) {
+            ctx.fillStyle = '#4DFFF3'; // Cyan
+            ctx.font = 'bold 60px monospace';
+            ctx.shadowColor = '#4DFFF3';
+            ctx.shadowBlur = 20;
+            ctx.fillText("WAVE COMPLETE", centerX, height / 2);
+            ctx.shadowBlur = 0;
         }
         else if (waveMgr.isShopOpen) {
             // SHOP UI
@@ -453,6 +518,8 @@ export class Renderer {
         ctx.textAlign = 'center';
 
         for (const enemy of entities.enemies) {
+            if (enemy.isFadingOut) continue; // Don't show bars during fade out for cleaner look
+
             ctx.save();
             ctx.translate(enemy.x, enemy.y);
 

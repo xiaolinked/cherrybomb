@@ -73,7 +73,9 @@ export class Game {
     }
 
     private generateChunk(cx: number, cy: number, density: number) {
-        const count = Math.floor(this.CHUNK_SIZE * this.CHUNK_SIZE * density);
+        // Reduced density for "less rocks"
+        const finalDensity = density * 0.7;
+        const count = Math.floor(this.CHUNK_SIZE * this.CHUNK_SIZE * finalDensity);
 
         for (let i = 0; i < count; i++) {
             // Hero starting area safety

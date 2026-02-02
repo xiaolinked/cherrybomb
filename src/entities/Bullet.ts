@@ -41,6 +41,11 @@ export class Bullet extends Entity {
             return;
         }
 
+        if (this.isFadingOut) {
+            this.opacity -= dt * 0.8;
+            if (this.opacity < 0) this.opacity = 0;
+        }
+
         // Collision with Obstacles
         for (const obs of game.obstacles) {
             if (this.distanceTo(obs) < (this.radius + obs.radius)) {
@@ -61,6 +66,7 @@ export class Bullet extends Entity {
 
     public draw(ctx: CanvasRenderingContext2D): void {
         ctx.save();
+        ctx.globalAlpha = this.opacity;
         ctx.shadowBlur = 10;
         ctx.shadowColor = this.color;
         ctx.fillStyle = this.color;

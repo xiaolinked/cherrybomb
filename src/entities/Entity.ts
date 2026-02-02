@@ -7,6 +7,8 @@ export abstract class Entity {
     public radius: number = 0.5;
     public isDead: boolean = false;
     public color: string = '#FFF';
+    public opacity: number = 1.0;
+    public isFadingOut: boolean = false;
 
     constructor(x: number, y: number) {
         this.x = x;

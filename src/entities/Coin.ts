@@ -20,6 +20,10 @@ export class Coin extends Entity {
     }
 
     public update(dt: number, game: Game): void {
+        if (this.isFadingOut) {
+            this.opacity -= dt * 0.8;
+            if (this.opacity < 0) this.opacity = 0;
+        }
         this.age += dt;
 
         // Magnet Logic
@@ -44,6 +48,7 @@ export class Coin extends Entity {
 
     public draw(ctx: CanvasRenderingContext2D): void {
         ctx.save();
+        ctx.globalAlpha = this.opacity;
         ctx.translate(this.x, this.y);
 
         // Bounce Animation

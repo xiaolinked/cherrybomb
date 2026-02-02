@@ -111,13 +111,41 @@ export class Hero extends Entity {
         }
 
         // Shooting
-        if (input.mouse.leftDown && this.fireTimer <= 0 && this.reloadTimer <= 0) {
+        let isShooting = false;
+        let aimX = input.mouseWorld.x;
+        let aimY = input.mouseWorld.y;
+
+        if (input.isMobile) {
+            // Use Right Stick
+            if (input.stickRight.active) {
+                // Aim based on stick angle relative to hero
+                // Virtual Stick gives normalized vector (x,y)
+                // We want to simulate the "mouseWorld" being in that direction
+                // Or just use the stick angle directly
+                const dist = Math.sqrt(input.stickRight.x * input.stickRight.x + input.stickRight.y * input.stickRight.y);
+                if (dist > 0.3) { // Deadzone
+                    isShooting = true;
+                }
+            }
+        } else {
+            // Mouse
+            isShooting = input.mouse.leftDown;
+        }
+
+        if (isShooting && this.fireTimer <= 0 && this.reloadTimer <= 0) {
             if (this.ammo > 0) {
                 this.ammo--;
                 this.fireTimer = config.blaster.fire_rate;
 
+                // Aim Logic
+                let baseAngle = 0;
+                if (input.isMobile && input.stickRight.active) {
+                    baseAngle = Math.atan2(input.stickRight.y, input.stickRight.x);
+                } else {
+                    baseAngle = Math.atan2(aimY - this.y, aimX - this.x);
+                }
+
                 // Multishot Logic
-                const baseAngle = Math.atan2(input.mouseWorld.y - this.y, input.mouseWorld.x - this.x);
                 const spread = 0.1; // ~5.7 degrees in radians
 
                 for (let i = 0; i < this.multishot; i++) {
@@ -307,7 +335,13 @@ export class Hero extends Entity {
 
         // --- DRAW BLASTER (On Top) ---
         const input = InputManager.getInstance();
-        const aimAngle = Math.atan2(input.mouseWorld.y - this.y, input.mouseWorld.x - this.x);
+        let aimAngle = 0;
+
+        if (input.isMobile && input.stickRight.active) {
+            aimAngle = Math.atan2(input.stickRight.y, input.stickRight.x);
+        } else {
+            aimAngle = Math.atan2(input.mouseWorld.y - this.y, input.mouseWorld.x - this.x);
+        }
 
         ctx.save();
         ctx.translate(this.x, this.y); // Fix: Translate back to hero position
