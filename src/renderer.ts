@@ -578,7 +578,6 @@ export class Renderer {
         const w = this.width;
         const h = this.height;
         this.drawCircleButton(w - 80, h - 80, 45, "DASH", "#FFF", input.buttons.dash);
-        this.drawCircleButton(w - 80, h - 190, 40, "RELOAD", "#FFFF00", input.buttons.reload);
         this.drawCircleButton(w - 180, h - 80, 40, "PUSH", "#00FFFF", input.buttons.pushBack);
 
         ctx.restore();

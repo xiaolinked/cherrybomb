@@ -100,8 +100,8 @@ export class Hero extends Entity {
             this.pushBackVisualTimer = config.abilities.push_back.visual_duration; // Visual ring duration
         }
 
-        // Manual Reload (R or Virtual Button)
-        if ((input.keys['r'] || input.buttons.reload) && this.reloadTimer <= 0 && this.ammo < this.maxAmmo) {
+        // Manual Reload (R)
+        if (input.keys['r'] && this.reloadTimer <= 0 && this.ammo < this.maxAmmo) {
             this.reloadTimer = config.blaster.reload_time;
             AudioManager.playReload();
         }

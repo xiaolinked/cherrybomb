@@ -14,7 +14,7 @@ export class InputManager {
     public stickRight: { x: number, y: number, active: boolean, id: number | null, originX: number, originY: number } = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 };
 
     // Virtual Buttons
-    public buttons: { [key: string]: boolean } = { dash: false, reload: false, pushBack: false };
+    public buttons: { [key: string]: boolean } = { dash: false, pushBack: false };
 
     private constructor() {
         // Feature detection for touch
@@ -77,13 +77,6 @@ export class InputManager {
         if (Math.hypot(x - (width - 80), y - (height - 80)) < 50) {
             this.buttons.dash = true;
             this.clickOccurred = true; // Still trigger click for UI consumption if needed
-            return;
-        }
-
-        // Check Reload
-        if (Math.hypot(x - (width - 80), y - (height - 190)) < 50) {
-            this.buttons.reload = true;
-            this.clickOccurred = true;
             return;
         }
 
@@ -177,7 +170,6 @@ export class InputManager {
         // Release buttons - we can check ID if we want to be more precise, 
         // but typically touch buttons are tap-based or release-on-end.
         this.buttons.dash = false;
-        this.buttons.reload = false;
         this.buttons.pushBack = false;
     }
 
