@@ -42,6 +42,8 @@ export class Game {
     private isDeathSequenceStarted: boolean = false;
 
     public waveManager: WaveManager;
+    public isPaused: boolean = false;
+    private pauseCooldown: number = 0;
 
     constructor(canvas: HTMLCanvasElement) {
         this.renderer = new Renderer(canvas);
@@ -106,7 +108,11 @@ export class Game {
         }
     }
 
-    public checkObstacleCollision(entity: any, _dt: number): boolean {
+    public togglePause() {
+        this.isPaused = !this.isPaused;
+    }
+
+    public checkObstacleCollision(entity: any): boolean {
         let collided = false;
         for (const obs of this.obstacles) {
             const dx = entity.x - obs.x;
@@ -129,14 +135,51 @@ export class Game {
     public start() {
         this.isRunning = true;
         this.lastTime = performance.now();
-        requestAnimationFrame((time) => this.loop(time));
+        requestAnimationFrame((time) => this.update(time));
     }
 
-    private loop(time: number) {
+    public update(time: number) {
         if (!this.isRunning) return;
 
-        const dt = (time - this.lastTime) / 1000;
+        let dt = (time - this.lastTime) / 1000;
+        if (dt > 0.1) dt = 0.1; // Cap dt to prevent physics glitches on large frame drops
         this.lastTime = time;
+
+        const input = InputManager.getInstance();
+        if (this.pauseCooldown > 0) this.pauseCooldown -= dt;
+
+        if ((input.keys['p'] || input.keys['escape']) && this.pauseCooldown <= 0) {
+            this.togglePause();
+            this.pauseCooldown = 0.3; // Cooldown to prevent multiple toggles from a single press
+        }
+
+        if (this.isPaused) {
+            if (input.isNewClick()) {
+                const mx = input.mouse.x;
+                const my = input.mouse.y;
+                const width = window.innerWidth;
+                const isPauseBtn = Math.abs(mx - (width - 60)) < 40 && Math.abs(my - 40) < 20;
+                if (isPauseBtn) {
+                    this.togglePause();
+                    this.pauseCooldown = 0.3;
+                    return;
+                }
+            }
+            this.renderer.render(this);
+            requestAnimationFrame((t) => this.update(t));
+            return;
+        }
+
+        if (input.isNewClick()) {
+            const mx = input.mouse.x;
+            const my = input.mouse.y;
+            const width = window.innerWidth;
+            const isPauseBtn = Math.abs(mx - (width - 60)) < 40 && Math.abs(my - 40) < 20;
+            if (isPauseBtn) {
+                this.togglePause();
+                this.pauseCooldown = 0.3;
+            }
+        }
 
         if (this.hitStopTimer > 0) {
             this.hitStopTimer -= dt;
@@ -146,7 +189,7 @@ export class Game {
                 if (bomb.state === BombState.EXPLODING) bomb.update(dt, this);
             }
         } else {
-            this.update(dt);
+            this.gameUpdate(dt); // Renamed original update to gameUpdate to avoid conflict
         }
 
         if (this.deathHighlightTimer > 0) {
@@ -154,7 +197,7 @@ export class Game {
         }
 
         this.renderer.render(this);
-        requestAnimationFrame((t) => this.loop(t));
+        requestAnimationFrame((t) => this.update(t));
     }
 
     public restart() {
@@ -229,7 +272,7 @@ export class Game {
         }
     }
 
-    private update(dt: number) {
+    private gameUpdate(dt: number) {
         this.updateProceduralGeneration();
         if (this.shopCooldown > 0) this.shopCooldown -= dt;
 
@@ -258,24 +301,39 @@ export class Game {
             return;
         }
 
-        if (this.waveManager.isShopOpen || this.waveManager.isReady) {
+        if (this.waveManager.isShopOpen || this.waveManager.isReady || this.waveManager.isIndexOpen) {
             const clickHappened = input.isNewClick();
+            const mx = input.mouse.x;
+            const my = input.mouse.y;
+            const cx = window.innerWidth / 2;
+            const h = window.innerHeight;
+
+            if (this.waveManager.isIndexOpen) {
+                if (clickHappened || input.keys['escape'] || input.keys[' ']) {
+                    this.waveManager.triggerNextPhase();
+                    return;
+                }
+                return;
+            }
 
             if (clickHappened || input.keys[' '] || input.keys['enter']) {
-                const mx = input.mouse.x;
-                const my = input.mouse.y;
-                const cx = window.innerWidth / 2;
-                const h = window.innerHeight;
                 const isKeyboard = input.keys[' '] || input.keys['enter'];
 
                 if (this.waveManager.isReady) {
                     const config = ConfigManager.getConfig();
-                    const inButtonArea = Math.abs(mx - cx) < config.ui.shop.ready_button_width && Math.abs(my - h / 2) < config.ui.shop.ready_button_height;
-                    if (isKeyboard || inButtonArea) {
+                    const inStartBtn = Math.abs(mx - cx) < 140 && Math.abs(my - (h / 2)) < 27.5;
+                    const inIndexBtn = Math.abs(mx - cx) < 140 && Math.abs(my - (h / 2 + 70)) < 27.5;
+
+                    if (isKeyboard || inStartBtn) {
                         this.waveManager.triggerNextPhase();
                         this.shopCooldown = config.ui.shop.cooldown_after_start;
                         input.keys[' '] = false;
                         input.keys['enter'] = false;
+                        return;
+                    }
+
+                    if (inIndexBtn) {
+                        this.waveManager.openIndex();
                         return;
                     }
                 } else if (this.waveManager.isShopOpen && this.shopCooldown <= 0) {
@@ -331,7 +389,7 @@ export class Game {
 
         if (this.waveManager.isWaveActive) {
             this.hero.update(dt, this);
-            this.checkObstacleCollision(this.hero, dt);
+            this.checkObstacleCollision(this.hero);
         }
 
         for (let i = this.enemies.length - 1; i >= 0; i--) {
@@ -345,7 +403,7 @@ export class Game {
             }
 
             enemy.update(dt, this);
-            this.checkObstacleCollision(enemy, dt);
+            this.checkObstacleCollision(enemy);
             if (enemy.isDead) {
                 enemy.onDeath(this);
                 this.enemies.splice(i, 1);

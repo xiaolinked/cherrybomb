@@ -11,7 +11,8 @@ export enum WaveState {
     COUNTDOWN,  // 3..2..1 before wave
     WAVE,       // Playing
     WAVE_COMPLETE, // 2s pause with message
-    SHOP        // Intermission
+    SHOP,        // Intermission
+    INDEX        // Enemy Encyclopedia
 }
 
 export interface SpawnTelegraph {
@@ -64,11 +65,25 @@ export class WaveManager {
             case WaveState.SHOP:
                 // Wait for external Space input
                 break;
+            case WaveState.INDEX:
+                // Wait for external Space input
+                break;
         }
     }
 
     // Called by Game.ts on Space
+    public openIndex() {
+        if (this.state === WaveState.READY) {
+            this.state = WaveState.INDEX;
+        }
+    }
+
     public triggerNextPhase() {
+        if (this.state === WaveState.INDEX) {
+            this.state = WaveState.READY;
+            return;
+        }
+
         if (this.state === WaveState.READY) {
             this.startCountdown();
         } else if (this.state === WaveState.SHOP) {
@@ -214,9 +229,11 @@ export class WaveManager {
         const rand = Math.random();
         let enemy: Enemy;
 
-        if (this.currentWave <= 5) {
-            // Early Game (Waves 1-5): Only Regular (70%) and Fast (30%)
-            // Note: Mini enemies spawn from Splitters (which are 0% here)
+        if (this.currentWave === 1) {
+            // Wave 1: Only Regular
+            enemy = new Enemy(x, y);
+        } else if (this.currentWave <= 5) {
+            // Early Game (Waves 2-5): Only Regular (70%) and Fast (30%)
             if (rand < 0.3) {
                 enemy = new FastEnemy(x, y);
             } else {
@@ -263,6 +280,9 @@ export class WaveManager {
 
     public get isShopOpen(): boolean {
         return this.state === WaveState.SHOP;
+    }
+    public get isIndexOpen(): boolean {
+        return this.state === WaveState.INDEX;
     }
 
     public get isCountdown(): boolean {

@@ -104,8 +104,7 @@ export class Renderer {
         this.ctx.restore(); // Back to screen space
 
         // --- Atmospheric Dimming (Conditional) ---
-        // Only dim when in intermissions (Ready/Shop)
-        if (game.waveManager.isShopOpen || game.waveManager.isReady) {
+        if (game.waveManager.isShopOpen || game.waveManager.isReady || game.waveManager.isIndexOpen) {
             this.ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
             this.ctx.fillRect(0, 0, this.width, this.height);
         }
@@ -117,6 +116,16 @@ export class Renderer {
 
         if (game.deathHighlightTimer > 0) {
             this.drawDeathClarity(game);
+        }
+
+        // --- PAUSE OVERLAY ---
+        if (game.isPaused) {
+            this.drawPauseOverlay();
+        }
+
+        // --- ENEMY INDEX ---
+        if (game.waveManager.isIndexOpen) {
+            this.drawEnemyIndex();
         }
 
         this.drawScanlines();
@@ -257,17 +266,28 @@ export class Renderer {
 
             const startBtnY = height / 2;
             this.drawButton(centerX, startBtnY, 280, 55, "START GAME", "#00FF00");
+            this.drawButton(centerX, startBtnY + 70, 280, 55, "ENEMY INDEX", "#FFD84D");
 
             const input = InputManager.getInstance();
             ctx.font = '20px sans-serif';
             ctx.fillStyle = '#AAA';
             if (input.isTouchDevice) {
-                ctx.fillText("Touch Left Side to Move, Right Side to Aim", centerX, startBtnY + 80);
-                ctx.fillText("Tap Buttons for Actions", centerX, startBtnY + 110);
+                ctx.fillText("Touch Left Side to Move, Right Side to Aim", centerX, startBtnY + 140);
+                ctx.fillText("Tap Buttons for Actions", centerX, startBtnY + 170);
             } else {
-                ctx.fillText("WASD/Arrows to Move, Mouse to Aim", centerX, startBtnY + 80);
+                ctx.fillText("WASD/Arrows to Move, Mouse to Aim", centerX, startBtnY + 140);
             }
+        }
+        else if (waveMgr.isIndexOpen) {
+            // Handled in main render loop for better layering if needed
+            // but we can black out here too
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            ctx.fillRect(0, 0, width, height);
+        }
 
+        // Pause Button (HUD)
+        if (!game.hero.isDead && !waveMgr.isReady && !waveMgr.isIndexOpen) {
+            this.drawButton(width - 60, 40, 80, 40, "PAUSE", "#FFFFFF");
         }
         else if (waveMgr.isShopOpen) {
             ctx.fillStyle = '#FFFF00';
@@ -600,6 +620,105 @@ export class Renderer {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(label, x, y);
+        ctx.restore();
+    }
+
+    private drawPauseOverlay() {
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.resetTransform();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        ctx.fillStyle = '#FFF';
+        ctx.font = 'bold 80px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText("PAUSED", this.width / 2, this.height / 2);
+
+        ctx.font = '24px sans-serif';
+        ctx.fillText("Press P or ESC to Resume", this.width / 2, this.height / 2 + 60);
+        ctx.restore();
+    }
+
+    private drawEnemyIndex() {
+        const ctx = this.ctx;
+        const w = this.width;
+        const h = this.height;
+
+        ctx.save();
+        ctx.resetTransform();
+        ctx.fillStyle = 'rgba(10, 10, 18, 0.95)';
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.fillStyle = '#FFD84D';
+        ctx.font = 'bold 40px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText("ENEMY ENCYCLOPEDIA", w / 2, 60);
+
+        const enemies = [
+            { name: "TRIANGLE (Standard)", color: "#FFD84D", desc: "Basic unit. Slow and predictable.", shape: "triangle" },
+            { name: "DIAMOND (Fast)", color: "#FF3333", desc: "Speed demon. Charging speed is deadly.", shape: "diamond" },
+            { name: "HEXAGON (Tank)", color: "#2ECC71", desc: "Heavily shielded. Takes massive damage.", shape: "hexagon" },
+            { name: "SQUARE (Blinker)", color: "#A020F0", desc: "Periodically teleports closer to hero.", shape: "square" },
+            { name: "OCTAGON (Splitter)", color: "#FF69B4", desc: "Splits into 3 minis upon death.", shape: "octagon" },
+            { name: "CIRCLE (Mini)", color: "#FFA500", desc: "Spawned from Splitters. Fast and armed.", shape: "circle" }
+        ];
+
+        const startY = 140;
+        const col1 = w / 4;
+        const spacingY = 90;
+
+        ctx.font = '20px sans-serif';
+        ctx.textAlign = 'left';
+
+        enemies.forEach((en, i) => {
+            const y = startY + i * spacingY;
+
+            // Illustration
+            ctx.save();
+            ctx.translate(col1 - 60, y);
+            ctx.scale(20, 20); // Scale up for "illustration"
+
+            ctx.fillStyle = en.color;
+            ctx.beginPath();
+            if (en.shape === "triangle") {
+                ctx.moveTo(0.7, 0); ctx.lineTo(-0.7, 0.5); ctx.lineTo(-0.7, -0.5);
+            } else if (en.shape === "diamond") {
+                ctx.moveTo(0.9, 0); ctx.lineTo(0, 0.3); ctx.lineTo(-0.9, 0); ctx.lineTo(0, -0.3);
+            } else if (en.shape === "hexagon") {
+                for (let j = 0; j < 6; j++) {
+                    const a = (Math.PI / 3) * j;
+                    ctx.lineTo(Math.cos(a) * 0.6, Math.sin(a) * 0.6);
+                }
+            } else if (en.shape === "square") {
+                ctx.rect(-0.5, -0.5, 1, 1);
+            } else if (en.shape === "octagon") {
+                for (let j = 0; j < 8; j++) {
+                    const a = (Math.PI / 4) * j;
+                    ctx.lineTo(Math.cos(a) * 0.6, Math.sin(a) * 0.6);
+                }
+            } else if (en.shape === "circle") {
+                ctx.arc(0, 0, 0.4, 0, Math.PI * 2);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+
+            // Text
+            ctx.fillStyle = en.color;
+            ctx.font = 'bold 22px sans-serif';
+            ctx.fillText(en.name, col1, y - 5);
+
+            ctx.fillStyle = '#AAA';
+            ctx.font = '16px sans-serif';
+            ctx.fillText(en.desc, col1, y + 20);
+        });
+
+        ctx.fillStyle = '#FFF';
+        ctx.textAlign = 'center';
+        ctx.font = '20px sans-serif';
+        ctx.fillText("Press Space or Click to Return", w / 2, h - 40);
+
         ctx.restore();
     }
 
