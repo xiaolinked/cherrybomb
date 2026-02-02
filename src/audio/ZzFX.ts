@@ -27,7 +27,7 @@ export class ZzFX {
         ] = parameters;
 
         const sampleRate = 44100;
-        const length = (attack + sustain + release) * sampleRate;
+        const length = Math.max(1, Math.floor((attack + sustain + release) * sampleRate));
         const buffer = this.x.createBuffer(1, length, sampleRate);
         const data = buffer.getChannelData(0);
 

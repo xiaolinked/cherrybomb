@@ -8,7 +8,7 @@
 - Genre: 2D top-down arena shooter
 - Camera: Fixed top-down view
 - Mode: Endless survival
-- Objective: Survive infinite waves with escalating difficulty
+- Objective: Survive infinite waves with escalating difficulty (see `game_flow.*` in `config.json`)
 
 The game focuses on space control, bomb-based threats, and survival under pressure.
 
@@ -45,11 +45,11 @@ When the wave timer ends:
 ### 3.1 Core Stats
 
 - Health (HP)
-  - Starts at 300
+  - Starts at `hero.base_hp`
 - Armor (upgradeable)
 - Stamina
-  - Starts at 100
-  - Regenerates over time
+  - Starts at `hero.stamina.base`
+  - Regenerates over time (`hero.stamina.regen_rate`)
   - Maximum stamina can be increased via upgrades
 - **Recovery**: HP and Stamina auto-refill between waves.
 
@@ -57,7 +57,7 @@ When the wave timer ends:
 
 ### 3.2 Inter-Wave Flow
 
-- **Phase Sequence**: Wave End -> Auto-Pause (Shop) -> Space Press -> 2s Countdown -> Next Wave.
+- **Phase Sequence**: Wave End -> Auto-Pause (Shop) -> Space Press -> Countdown (`game_flow.inter_wave_pause_time`) -> Next Wave.
 - **Visual Feedback**: Pulsing countdown timer before wave starts.
 
 ---
@@ -76,12 +76,12 @@ When the wave timer ends:
 
 #### Dash
 - Moves hero quickly in a direction
-- Consumes stamina
+- Consumes stamina (`abilities.dash.stamina_cost`)
 - Cannot be used if stamina is insufficient
 
 #### Push Back
 - Active ability
-- Pushes enemy units backward by exactly 10 steps
+- Pushes enemy units backward by exactly `abilities.push_back.distance`
 - Works regardless of:
   - Enemy shield state
   - Enemy bomb state
@@ -98,9 +98,9 @@ When the wave timer ends:
 
 - Fires straight-line bullets
 - Configurable parameters:
-  - Bullet speed
-  - Bullet damage
-  - Fire rate
+  - Bullet speed (`blaster.bullet_speed`)
+  - Bullet damage (`blaster.bullet_damage`)
+  - Fire rate (`blaster.fire_rate`)
 - Blaster upgrades are unlocked progressively by wave number
 - Upgrades are purchased using coins
 
@@ -111,7 +111,7 @@ When the wave timer ends:
 ### 5.1 Coins
 
 - Enemies drop coins on death
-- Coins are used between waves to upgrade:
+- Coins are used between waves to upgrade (see `shop.upgrades` and related config):
   - Blaster stats
   - Abilities
   - Armor
@@ -179,7 +179,7 @@ Each cherry bomb exists in exactly one of the following states:
 A bomb becomes armed if ANY of the following occurs:
 
 1. Enemy shield breaks
-2. Enemy comes within 10 steps of the hero
+2. Enemy comes within `bomb.proximity_activation_distance` of the hero
 3. Enemy is inside the blast radius of another bomb explosion
 
 ---
@@ -189,7 +189,7 @@ A bomb becomes armed if ANY of the following occurs:
 When armed:
 
 - Bomb glows and pulses
-- A visible 3-second countdown appears above the enemy
+- A visible countdown (`bomb.countdown_duration`) appears above the enemy
 - Enemy switches to aggressive charge behavior
 - Countdown continues regardless of:
   - Damage taken

@@ -67,7 +67,7 @@ export class WaveManager {
 
     private startCountdown() {
         this.state = WaveState.COUNTDOWN;
-        this.stateTimer = 2.0; // 2 seconds
+        this.stateTimer = ConfigManager.getConfig().game_flow.inter_wave_pause_time;
         console.log("Countdown Started");
     }
 
@@ -134,8 +134,8 @@ export class WaveManager {
 
         this.activeTelegraphs.push({
             x, y,
-            timer: 1.0, // 1 second anticipation
-            maxTimer: 1.0
+            timer: config.enemy.spawn.telegraph_duration,
+            maxTimer: config.enemy.spawn.telegraph_duration
         });
     }
 

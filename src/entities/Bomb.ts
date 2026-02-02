@@ -36,7 +36,7 @@ export class Bomb extends Entity {
         this.damage = config.bomb.explosion.max_damage;
     }
 
-    private explosionDuration: number = 0.25; // VISUAL SPEC: Duration 0.25s
+    private explosionDuration: number = ConfigManager.getConfig().bomb.explosion.visual_duration;
     private explosionTimer: number = 0;
 
     public update(dt: number, game: Game): void {
@@ -82,7 +82,7 @@ export class Bomb extends Entity {
             this.timer -= dt;
 
             // Pulse visual
-            this.flashTimer += dt * 10; // Fast pulse
+            this.flashTimer += dt * config.ui.bomb_visuals.pulse_speed;
 
             if (this.timer <= 0) {
                 this.explode(game);
@@ -110,6 +110,7 @@ export class Bomb extends Entity {
     public explode(game: Game) {
         if (this.state === BombState.DEAD || this.state === BombState.EXPLODING) return;
 
+        const config = ConfigManager.getConfig();
         AudioManager.playExplosion();
         this.state = BombState.EXPLODING;
         this.explosionTimer = this.explosionDuration;
@@ -143,12 +144,12 @@ export class Bomb extends Entity {
             const actualDamage = Math.max(0, this.damage * pct);
 
             game.hero.takeDamage(actualDamage, this);
-            game.hitStopTimer = 0.05; // VISUAL SPEC: Hit stop 0.05s
+            game.hitStopTimer = config.ui.explosion.hit_stop;
             console.log("Hero hit by bomb! Damage: " + actualDamage.toFixed(1));
         }
 
         // VISUAL SPEC: Screen shake (light)
-        game.renderer.triggerShake(0.2, 0.2); // Light shake for 0.2s
+        game.renderer.triggerShake(config.bomb.explosion.screen_shake_intensity, config.ui.explosion.screen_shake_duration);
 
         // 2. Enemies (Chain Reaction)
         for (const enemy of game.enemies) {

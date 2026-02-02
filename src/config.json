@@ -8,8 +8,9 @@
         "inter_wave_pause_time": 2
     },
     "hero": {
-        "base_hp": 150,
+        "base_hp": 220,
         "base_armor": 0,
+        "move_speed": 10.0,
         "armor": {
             "damage_reduction_percent": 0.2
         },
@@ -18,24 +19,26 @@
         },
         "stamina": {
             "base": 100,
-            "regen_rate": 20,
+            "regen_rate": 28,
             "regen_delay_after_dash": 0.5,
             "max_cap": 300,
-            "upgrade_increment": 20
+            "upgrade_increment": 60
         }
     },
     "abilities": {
         "dash": {
             "distance": 3.0,
-            "stamina_cost": 16,
+            "stamina_cost": 12,
             "cooldown": 0.2,
+            "duration": 0.15,
             "iframe_duration": 0.15
         },
         "push_back": {
-            "distance": 3.0,
+            "distance": 5.0,
             "radius": 1.8,
-            "cooldown": 3.0,
-            "force_priority": 1.0
+            "cooldown": 2.4,
+            "force_priority": 1.0,
+            "visual_duration": 0.2
         }
     },
     "blaster": {
@@ -46,30 +49,41 @@
         "magazine_size": 10,
         "reload_time": 1.2,
         "multishot_count": 1,
+        "multishot_spread_radians": 0.1,
+        "multishot_target_distance": 10,
         "upgrades": {
             "damage_increment": 2,
             "speed_increment": 2,
             "fire_rate_increment": 0.5,
+            "fire_rate_decrement": 0.03,
+            "min_fire_rate": 0.05,
             "max_fire_rate_cap": 12,
             "multishot_increment": 1
         }
     },
     "enemy": {
         "base_hp": 30,
-        "base_shield_hp": 40,
+        "base_shield_hp": 10,
+        "radius": 0.6,
+        "despawn_distance": 40,
+        "separation_distance_multiplier": 2.0,
         "movement": {
             "walk_speed": 2.2,
             "charge_speed": 6.0,
-            "turn_rate": 720
+            "turn_rate": 720,
+            "stop_distance": 0.1,
+            "separation_push_factor": 0.5,
+            "separation_min_distance": 0.01
         },
         "spawn": {
-            "spawn_delay": 0.3,
+            "spawn_delay": 0.5,
+            "telegraph_duration": 1.0,
             "min_distance_from_hero": 12,
-            "max_distance_from_hero": 22
+            "max_distance_from_hero": 25
         },
         "scaling": {
             "hp_per_wave": 1.15,
-            "shield_per_wave": 1.2,
+            "shield_per_wave": 1.1,
             "speed_per_wave": 1.03
         }
     },
@@ -81,17 +95,18 @@
     },
     "bomb": {
         "proximity_activation_distance": 5,
-        "countdown_duration": 3.0,
+        "countdown_duration": 2.0,
         "explosion": {
-            "radius": 4.5,
-            "max_damage": 60,
-            "min_damage": 15,
+            "radius": 4.0,
+            "max_damage": 50,
+            "min_damage": 10,
             "damage_falloff_curve": "linear",
             "chain_delay": 0.1,
-            "screen_shake_intensity": 0.6
+            "screen_shake_intensity": 0.6,
+            "visual_duration": 0.25
         },
         "detached": {
-            "lifetime": 3.0,
+            "lifetime": 2.0,
             "warning_flash_time": 0.8
         }
     },
@@ -101,10 +116,19 @@
         "self_explosion_kill_override": true
     },
     "economy": {
-        "coins_drop_base": 3,
+        "coins_drop_base": 4,
         "coins_drop_random_variance": 2,
         "coins_per_kill_multiplier": 1.0,
         "coins_wave_bonus": 10,
+        "coin": {
+            "drop_spread": 1.0,
+            "pickup_distance": 0.5,
+            "cleanup_distance": 50,
+            "lucky_chance": 0.08,
+            "lucky_multiplier": 3,
+            "score_per_coin": 100,
+            "score_per_kill": 50
+        },
         "upgrades": {
             "cost_base": 10,
             "cost_scaling": 1.35,
@@ -118,21 +142,67 @@
             "danger": 1.0
         },
         "bomb_visuals": {
-            "pulse_speed": 3.0,
+            "pulse_speed": 10.0,
             "glow_intensity": 1.2
+        },
+        "explosion": {
+            "hit_stop": 0.05,
+            "screen_shake_duration": 0.2
+        },
+        "death": {
+            "pause_duration": 0.3,
+            "highlight_duration": 0.7
+        },
+        "shop": {
+            "cooldown_after_buy": 0.3,
+            "cooldown_after_start": 0.5,
+            "cooldown_after_close": 0.5,
+            "ready_button_width": 140,
+            "ready_button_height": 27.5,
+            "shop_button_width": 110,
+            "shop_button_height": 22.5,
+            "shop_button_y": 85,
+            "card_width": 200,
+            "card_height": 120,
+            "card_spacing": 20,
+            "card_start_y": 150
         },
         "stamina": {
             "low_stamina_flash_threshold": 20
         },
         "hero": {
-            "low_hp_warning_threshold": 25
+            "low_hp_warning_threshold": 25,
+            "damage_flash_duration": 0.08,
+            "afterimage_alpha": 0.5,
+            "afterimage_fade_rate": 3.0
         }
+    },
+    "shop": {
+        "options_per_wave": 3,
+        "upgrades": [
+            { "type": "damage", "name": "Raw Power", "description": "+2 Damage", "cost": 25 },
+            { "type": "firerate", "name": "Rapid Fire", "description": "Faster Shoots", "cost": 40 },
+            { "type": "multishot", "name": "Multishot", "description": "+1 Bullet/Shot", "cost": 60 },
+            { "type": "health", "name": "Vitality", "description": "+50 Max HP", "cost": 30 },
+            { "type": "stamina", "name": "Endurance", "description": "+60 Max Stamina", "cost": 25 }
+        ]
     },
     "arena": {
         "is_endless": true,
         "grid_size": 2.0,
         "obstacle_density": 0.015,
-        "spawn_point_cooldown": 0.5
+        "spawn_point_cooldown": 0.5,
+        "chunk_size": 15,
+        "chunk_range": 2,
+        "safe_radius": 5,
+        "obstacle": {
+            "radius_min": 1.0,
+            "radius_max": 2.5,
+            "padding": 1.0,
+            "pillar_chance": 0.5,
+            "max_count": 300,
+            "cleanup_distance": 80
+        }
     },
     "safety_limits": {
         "max_simultaneous_armed_enemies": 8,

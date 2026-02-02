@@ -29,7 +29,6 @@ export class Game {
     public coins: Coin[] = [];
     public obstacles: Obstacle[] = [];
     private generatedChunks: Set<string> = new Set();
-    private readonly CHUNK_SIZE = 15;
 
     public score: number = 0;
     public coinCount: number = 0;
@@ -56,33 +55,37 @@ export class Game {
 
     private updateProceduralGeneration() {
         const config = ConfigManager.getConfig();
-        const density = config.arena.obstacle_density || 0.02;
+        const density = config.arena.obstacle_density;
+        const chunkSize = config.arena.chunk_size;
+        const chunkRange = config.arena.chunk_range;
 
-        const heroChunkX = Math.floor(this.hero.x / this.CHUNK_SIZE);
-        const heroChunkY = Math.floor(this.hero.y / this.CHUNK_SIZE);
+        const heroChunkX = Math.floor(this.hero.x / chunkSize);
+        const heroChunkY = Math.floor(this.hero.y / chunkSize);
 
-        for (let x = heroChunkX - 2; x <= heroChunkX + 2; x++) {
-            for (let y = heroChunkY - 2; y <= heroChunkY + 2; y++) {
+        for (let x = heroChunkX - chunkRange; x <= heroChunkX + chunkRange; x++) {
+            for (let y = heroChunkY - chunkRange; y <= heroChunkY + chunkRange; y++) {
                 const chunkId = `${x},${y}`;
                 if (!this.generatedChunks.has(chunkId)) {
-                    this.generateChunk(x, y, density);
+                    this.generateChunk(x, y, density, chunkSize);
                     this.generatedChunks.add(chunkId);
                 }
             }
         }
     }
 
-    private generateChunk(cx: number, cy: number, density: number) {
-        const count = Math.floor(this.CHUNK_SIZE * this.CHUNK_SIZE * density);
+    private generateChunk(cx: number, cy: number, density: number, chunkSize: number) {
+        const config = ConfigManager.getConfig();
+        const obstacleConfig = config.arena.obstacle;
+        const count = Math.floor(chunkSize * chunkSize * density);
 
         for (let i = 0; i < count; i++) {
             // Hero starting area safety
-            const rx = cx * this.CHUNK_SIZE + Math.random() * this.CHUNK_SIZE;
-            const ry = cy * this.CHUNK_SIZE + Math.random() * this.CHUNK_SIZE;
+            const rx = cx * chunkSize + Math.random() * chunkSize;
+            const ry = cy * chunkSize + Math.random() * chunkSize;
 
-            if (Math.abs(rx) < 5 && Math.abs(ry) < 5) continue;
+            if (Math.abs(rx) < config.arena.safe_radius && Math.abs(ry) < config.arena.safe_radius) continue;
 
-            const radius = 1.0 + Math.random() * 1.5; // Bigger obstacles (1.0 to 2.5)
+            const radius = obstacleConfig.radius_min + Math.random() * (obstacleConfig.radius_max - obstacleConfig.radius_min);
 
             // --- Overlap Prevention ---
             let overlap = false;
@@ -90,7 +93,7 @@ export class Game {
                 const dx = obs.x - rx;
                 const dy = obs.y - ry;
                 const distSq = dx * dx + dy * dy;
-                const minDist = (radius + obs.radius) + 1.0; // Radius + Padding
+                const minDist = (radius + obs.radius) + obstacleConfig.padding;
                 if (distSq < minDist * minDist) {
                     overlap = true;
                     break;
@@ -98,7 +101,7 @@ export class Game {
             }
             if (overlap) continue;
 
-            const type = Math.random() > 0.5 ? ObstacleType.PILLAR : ObstacleType.ROCK;
+            const type = Math.random() > obstacleConfig.pillar_chance ? ObstacleType.ROCK : ObstacleType.PILLAR;
             this.obstacles.push(new Obstacle(rx, ry, type, radius));
         }
     }
@@ -178,10 +181,11 @@ export class Game {
         if (idx >= 0) {
             this.coins.splice(idx, 1);
 
-            const multiplier = coin.isLucky ? 3 : 1;
+            const multiplier = coin.isLucky ? ConfigManager.getConfig().economy.coin.lucky_multiplier : 1;
             const gainedCoins = coin.value * multiplier;
 
-            this.score += 100 * gainedCoins;
+            const config = ConfigManager.getConfig();
+            this.score += config.economy.coin.score_per_coin * gainedCoins;
             this.coinCount += gainedCoins;
 
             if (coin.isLucky) {
@@ -200,7 +204,7 @@ export class Game {
         if (this.coinCount >= opt.cost) {
             const config = ConfigManager.getConfig();
             this.coinCount -= opt.cost;
-            this.shopCooldown = 0.3;
+            this.shopCooldown = config.ui.shop.cooldown_after_buy;
             AudioManager.playBuy();
 
             switch (opt.type) {
@@ -208,7 +212,7 @@ export class Game {
                     config.blaster.bullet_damage += config.blaster.upgrades.damage_increment;
                     break;
                 case 'firerate':
-                    config.blaster.fire_rate = Math.max(0.05, config.blaster.fire_rate - 0.05);
+                    config.blaster.fire_rate = Math.max(config.blaster.upgrades.min_fire_rate, config.blaster.fire_rate - config.blaster.upgrades.fire_rate_decrement);
                     break;
                 case 'multishot':
                     this.hero.multishot += config.blaster.upgrades.multishot_increment;
@@ -218,7 +222,7 @@ export class Game {
                     this.hero.hp = this.hero.maxHp;
                     break;
                 case 'stamina':
-                    this.hero.maxStamina += 60;
+                    this.hero.maxStamina += config.hero.stamina.upgrade_increment;
                     this.hero.stamina = this.hero.maxStamina;
                     break;
             }
@@ -226,19 +230,21 @@ export class Game {
             // Remove item from shop
             this.currentShopOptions[index] = null as any;
         } else {
-            this.shopCooldown = 0.3;
+            this.shopCooldown = ConfigManager.getConfig().ui.shop.cooldown_after_buy;
         }
     }
 
     private update(dt: number) {
+        this.updateMobileButtons();
         this.updateProceduralGeneration();
         if (this.shopCooldown > 0) this.shopCooldown -= dt;
 
         if (this.hero.isDead) {
             if (!this.isDeathSequenceStarted) {
+                const config = ConfigManager.getConfig();
                 this.isDeathSequenceStarted = true;
-                this.deathPauseTimer = 0.3;
-                this.deathHighlightTimer = 0.7;
+                this.deathPauseTimer = config.ui.death.pause_duration;
+                this.deathHighlightTimer = config.ui.death.highlight_duration;
             }
             const input = InputManager.getInstance();
             if (input.keys[' ']) this.restart();
@@ -247,24 +253,39 @@ export class Game {
 
         if (this.waveManager.isShopOpen || this.waveManager.isReady) {
             const input = InputManager.getInstance();
+            const clickHappened = input.isNewClick();
 
             // Handle Button Clicks
-            if (input.isNewClick()) {
+            if (clickHappened || input.keys[' '] || input.keys['enter']) {
                 const mx = input.mouse.x;
                 const my = input.mouse.y;
                 const cx = window.innerWidth / 2;
                 const h = window.innerHeight;
 
+                const isKeyboard = input.keys[' '] || input.keys['enter'];
+
                 if (this.waveManager.isReady) {
-                    if (Math.abs(mx - cx) < 140 && Math.abs(my - h / 2) < 27.5) {
+                    const config = ConfigManager.getConfig();
+                    const inButtonArea = Math.abs(mx - cx) < config.ui.shop.ready_button_width && Math.abs(my - h / 2) < config.ui.shop.ready_button_height;
+
+                    if (isKeyboard || inButtonArea) {
+                        console.log("Starting Next Phase (Ready -> Countdown)");
                         this.waveManager.triggerNextPhase();
-                        this.shopCooldown = 0.5;
+                        this.shopCooldown = config.ui.shop.cooldown_after_start;
+                        input.keys[' '] = false; // Consume keys
+                        input.keys['enter'] = false;
                         return;
                     }
                 } else if (this.waveManager.isShopOpen && this.shopCooldown <= 0) {
-                    if (Math.abs(mx - cx) < 110 && Math.abs(my - 85) < 22.5) {
+                    const config = ConfigManager.getConfig();
+                    const inButtonArea = Math.abs(mx - cx) < config.ui.shop.shop_button_width && Math.abs(my - config.ui.shop.shop_button_y) < config.ui.shop.shop_button_height;
+
+                    if (isKeyboard || inButtonArea) {
+                        console.log("Starting Next Phase (Shop -> Countdown)");
                         this.waveManager.triggerNextPhase();
-                        this.shopCooldown = 0.5;
+                        this.shopCooldown = config.ui.shop.cooldown_after_close;
+                        input.keys[' '] = false;
+                        input.keys['enter'] = false;
                         return;
                     }
                 }
@@ -272,7 +293,8 @@ export class Game {
 
             if (this.waveManager.isShopOpen && this.shopCooldown <= 0) {
                 // Keyboard Input
-                for (let i = 0; i < 3; i++) {
+                const optionsPerWave = ConfigManager.getConfig().shop.options_per_wave;
+                for (let i = 0; i < optionsPerWave; i++) {
                     const opt = this.currentShopOptions[i];
                     if (opt && input.keys[(i + 1).toString()]) {
                         this.buyUpgrade(i);
@@ -280,18 +302,20 @@ export class Game {
                 }
 
                 // Mouse Input (Clickable Cards)
-                if (input.isNewClick()) {
+                if (clickHappened) {
                     const mx = input.mouse.x;
                     const my = input.mouse.y;
                     const cx = window.innerWidth / 2;
-                    const startY = 150;
-                    const cardWidth = 200;
-                    const cardHeight = 120;
-                    const spacing = 20;
-                    const totalWidth = (cardWidth * 3) + (spacing * 2);
+                    const config = ConfigManager.getConfig();
+                    const startY = config.ui.shop.card_start_y;
+                    const cardWidth = config.ui.shop.card_width;
+                    const cardHeight = config.ui.shop.card_height;
+                    const spacing = config.ui.shop.card_spacing;
+                    const optionsPerWave = config.shop.options_per_wave;
+                    const totalWidth = (cardWidth * optionsPerWave) + (spacing * (optionsPerWave - 1));
                     const startX = cx - totalWidth / 2;
 
-                    for (let i = 0; i < 3; i++) {
+                    for (let i = 0; i < optionsPerWave; i++) {
                         const opt = this.currentShopOptions[i];
                         if (!opt) continue;
 
@@ -323,11 +347,12 @@ export class Game {
 
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
+            const config = ConfigManager.getConfig();
 
             // Cleanup: Despawn if too far from hero
             const dx = enemy.x - this.hero.x;
             const dy = enemy.y - this.hero.y;
-            if (dx * dx + dy * dy > 40 * 40) {
+            if (dx * dx + dy * dy > config.enemy.despawn_distance * config.enemy.despawn_distance) {
                 this.enemies.splice(i, 1);
                 continue;
             }
@@ -336,15 +361,14 @@ export class Game {
             this.checkObstacleCollision(enemy, dt);
             if (enemy.isDead) {
                 this.enemies.splice(i, 1);
-                const config = ConfigManager.getConfig();
-                const coinsDropped = config.economy.coins_drop_base;
+                const coinsDropped = config.economy.coins_drop_base + Math.floor(Math.random() * (config.economy.coins_drop_random_variance + 1));
                 for (let j = 0; j < coinsDropped; j++) {
-                    const cx = enemy.x + (Math.random() - 0.5) * 1.0;
-                    const cy = enemy.y + (Math.random() - 0.5) * 1.0;
-                    const isLucky = Math.random() < 0.05;
+                    const cx = enemy.x + (Math.random() - 0.5) * config.economy.coin.drop_spread;
+                    const cy = enemy.y + (Math.random() - 0.5) * config.economy.coin.drop_spread;
+                    const isLucky = Math.random() < config.economy.coin.lucky_chance;
                     this.coins.push(new Coin(cx, cy, 1, isLucky));
                 }
-                this.score += 50;
+                this.score += config.economy.coin.score_per_kill;
             }
         }
 
@@ -363,35 +387,32 @@ export class Game {
         for (let i = this.coins.length - 1; i >= 0; i--) {
             const coin = this.coins[i];
             coin.update(dt, this);
-            if (this.hero.distanceTo(coin) < 0.5) this.collectCoin(coin);
+            if (this.hero.distanceTo(coin) < ConfigManager.getConfig().economy.coin.pickup_distance) this.collectCoin(coin);
 
             // Cleanup Coins
             const dx = coin.x - this.hero.x;
             const dy = coin.y - this.hero.y;
-            if (dx * dx + dy * dy > 50 * 50) this.coins.splice(i, 1);
+            const config = ConfigManager.getConfig();
+            if (dx * dx + dy * dy > config.economy.coin.cleanup_distance * config.economy.coin.cleanup_distance) this.coins.splice(i, 1);
         }
 
         // Cleanup Obstacles
-        if (this.obstacles.length > 300) {
+        const config = ConfigManager.getConfig();
+        if (this.obstacles.length > config.arena.obstacle.max_count) {
             for (let i = this.obstacles.length - 1; i >= 0; i--) {
                 const obs = this.obstacles[i];
                 const dx = obs.x - this.hero.x;
                 const dy = obs.y - this.hero.y;
-                if (dx * dx + dy * dy > 80 * 80) this.obstacles.splice(i, 1);
+                if (dx * dx + dy * dy > config.arena.obstacle.cleanup_distance * config.arena.obstacle.cleanup_distance) this.obstacles.splice(i, 1);
             }
         }
     }
 
     public generateUpgradeOptions() {
-        const pool: UpgradeOption[] = [
-            { type: 'damage', name: 'Raw Power', description: '+2 Damage', cost: 25 },
-            { type: 'firerate', name: 'Rapid Fire', description: 'Faster Shoots', cost: 40 },
-            { type: 'multishot', name: 'Multishot', description: '+1 Bullet/Shot', cost: 60 },
-            { type: 'health', name: 'Vitality', description: '+50 Max HP', cost: 30 },
-            { type: 'stamina', name: 'Endurance', description: '+60 Max Stamina', cost: 25 }
-        ];
+        const config = ConfigManager.getConfig();
+        const pool: UpgradeOption[] = config.shop.upgrades;
         const shuffled = [...pool].sort(() => 0.5 - Math.random());
-        this.currentShopOptions = shuffled.slice(0, 3);
+        this.currentShopOptions = shuffled.slice(0, config.shop.options_per_wave);
     }
 
     public getEntities() {
@@ -403,5 +424,39 @@ export class Game {
             coins: this.coins,
             obstacles: this.obstacles
         };
+    }
+
+    private updateMobileButtons() {
+        const input = InputManager.getInstance();
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+
+        // Reset virtual buttons
+        input.buttons.dash = false;
+        input.buttons.reload = false;
+        input.buttons.pushBack = false;
+
+        if (!input.isTouchDevice) return; // Not a touch device
+
+        if (input.clickOccurred) {
+            const mx = input.mouse.x;
+            const my = input.mouse.y;
+
+            // Dash: (w-80, h-80), r=45
+            if (Math.hypot(mx - (w - 80), my - (h - 80)) < 45) {
+                input.buttons.dash = true;
+                input.clickOccurred = false; // Consume click
+            }
+            // Reload: (w-80, h-190), r=40
+            else if (Math.hypot(mx - (w - 80), my - (h - 190)) < 40) {
+                input.buttons.reload = true;
+                input.clickOccurred = false; // Consume click
+            }
+            // Push: (w-180, h-80), r=40
+            else if (Math.hypot(mx - (w - 180), my - (h - 80)) < 40) {
+                input.buttons.pushBack = true;
+                input.clickOccurred = false; // Consume click
+            }
+        }
     }
 }

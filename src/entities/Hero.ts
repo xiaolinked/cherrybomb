@@ -85,7 +85,7 @@ export class Hero extends Entity {
             this.dashTimer -= dt;
             // Move fast in dash direction // distance = speed * time
             const dashDist = config.abilities.dash.distance;
-            const dashSpeed = dashDist / 0.15;
+            const dashSpeed = dashDist / config.abilities.dash.duration;
 
             this.x += this.dashVector.x * dashSpeed * dt;
             this.y += this.dashVector.y * dashSpeed * dt;
@@ -97,15 +97,15 @@ export class Hero extends Entity {
             return;
         }
 
-        // Push Back Input (E)
-        if (input.keys['e'] && this.pushBackCooldownTimer <= 0) {
+        // Push Back Input (E or Virtual Button)
+        if ((input.keys['e'] || input.buttons.pushBack) && this.pushBackCooldownTimer <= 0) {
             this.performPushBack(game);
             this.pushBackCooldownTimer = config.abilities.push_back.cooldown;
-            this.pushBackVisualTimer = 0.2; // Show ring for 0.2s
+            this.pushBackVisualTimer = config.abilities.push_back.visual_duration; // Visual ring duration
         }
 
-        // Manual Reload (R)
-        if (input.keys['r'] && this.reloadTimer <= 0 && this.ammo < this.maxAmmo) {
+        // Manual Reload (R or Virtual Button)
+        if ((input.keys['r'] || input.buttons.reload) && this.reloadTimer <= 0 && this.ammo < this.maxAmmo) {
             this.reloadTimer = config.blaster.reload_time;
             AudioManager.playReload();
         }
@@ -118,14 +118,14 @@ export class Hero extends Entity {
 
                 // Multishot Logic
                 const baseAngle = Math.atan2(input.mouseWorld.y - this.y, input.mouseWorld.x - this.x);
-                const spread = 0.1; // ~5.7 degrees in radians
+                const spread = config.blaster.multishot_spread_radians;
 
                 for (let i = 0; i < this.multishot; i++) {
                     // Center the spread
                     const offset = (i - (this.multishot - 1) / 2) * spread;
                     const angle = baseAngle + offset;
-                    const targetX = this.x + Math.cos(angle) * 10;
-                    const targetY = this.y + Math.sin(angle) * 10;
+                    const targetX = this.x + Math.cos(angle) * config.blaster.multishot_target_distance;
+                    const targetY = this.y + Math.sin(angle) * config.blaster.multishot_target_distance;
 
                     game.bullets.push(new Bullet(this.x, this.y, targetX, targetY));
                 }
@@ -142,20 +142,20 @@ export class Hero extends Entity {
         // 3. Normal Movement
         const axis = input.getAxis();
         if (axis.x !== 0 || axis.y !== 0) {
-            // Check for Dash Input (Shift or Space)
-            if ((input.keys['shift'] || input.keys[' ']) &&
+            // Check for Dash Input (Shift or Space or Virtual Button)
+            if ((input.keys['shift'] || input.keys[' '] || input.buttons.dash) &&
                 this.dashCooldownTimer <= 0 &&
                 this.stamina >= config.abilities.dash.stamina_cost) {
 
                 // Trigger Dash
                 this.isDashing = true;
-                this.dashTimer = 0.15;
+                this.dashTimer = config.abilities.dash.duration;
                 this.dashCooldownTimer = config.abilities.dash.cooldown;
                 this.dashVector = { ...axis };
                 this.stamina -= config.abilities.dash.stamina_cost;
             } else {
                 // Move
-                const moveSpeed = 6.0;
+                const moveSpeed = config.hero.move_speed;
                 this.x += axis.x * moveSpeed * dt;
                 this.y += axis.y * moveSpeed * dt;
             }
@@ -173,10 +173,10 @@ export class Hero extends Entity {
 
         // Dashing afterimages
         if (this.isDashing) {
-            this.afterimages.push({ x: this.x, y: this.y, alpha: 0.5 });
+            this.afterimages.push({ x: this.x, y: this.y, alpha: config.ui.hero.afterimage_alpha });
         }
         for (let i = this.afterimages.length - 1; i >= 0; i--) {
-            this.afterimages[i].alpha -= dt * 3;
+            this.afterimages[i].alpha -= dt * config.ui.hero.afterimage_fade_rate;
             if (this.afterimages[i].alpha <= 0) this.afterimages.splice(i, 1);
         }
 
@@ -218,7 +218,7 @@ export class Hero extends Entity {
         const finalDamage = amount * (1.0 - reduction);
 
         this.hp -= finalDamage;
-        this.damageFlashTimer = 0.08; // VISUAL SPEC: Flash white for 0.08s
+        this.damageFlashTimer = config.ui.hero.damage_flash_duration;
         AudioManager.playHit();
 
         if (this.hp <= 0 && !this.isDead) {

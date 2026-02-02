@@ -5,7 +5,7 @@ import { Game } from './game';
 const style = document.createElement('style');
 style.innerHTML = `
   body { margin: 0; overflow: hidden; background: #000; }
-  canvas { display: block; }
+  canvas { display: block; touch-action: none; }
 `;
 document.head.appendChild(style);
 

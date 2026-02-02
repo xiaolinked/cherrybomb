@@ -112,6 +112,12 @@ export class Renderer {
 
         this.drawUI(game);
 
+        // Draw Mobile Controls
+        this.drawMobileControls();
+
+        // Draw Virtual Joystick
+        this.drawJoystick();
+
         if (game.deathHighlightTimer > 0) {
             this.drawDeathClarity(game);
         }
@@ -259,10 +265,16 @@ export class Renderer {
 
             this.drawButton(centerX, height / 2, 280, 55, "START GAME", "#00FF00");
 
+            const input = InputManager.getInstance();
             ctx.font = '20px sans-serif';
             ctx.fillStyle = '#AAA';
             ctx.textAlign = 'center';
-            ctx.fillText("WASD/Arrows to Move, Mouse to Aim", centerX, height / 2 + 60);
+            if (input.isTouchDevice) {
+                ctx.fillText("Touch Left Side to Move, Right Side to Aim", centerX, height / 2 + 60);
+                ctx.fillText("Tap Buttons for Actions", centerX, height / 2 + 85);
+            } else {
+                ctx.fillText("WASD/Arrows to Move, Mouse to Aim", centerX, height / 2 + 60);
+            }
         }
         else if (waveMgr.isShopOpen) {
             // SHOP UI
@@ -432,7 +444,9 @@ export class Renderer {
             ctx.fillText("YOU DIED", centerX, height / 2);
             ctx.font = '30px sans-serif';
             ctx.fillStyle = '#FFF';
-            ctx.fillText("Press SPACE to Restart", centerX, height / 2 + 50);
+            const input = InputManager.getInstance();
+            const restartText = input.isTouchDevice ? "Tap to Restart" : "Press SPACE to Restart";
+            ctx.fillText(restartText, centerX, height / 2 + 50);
         }
 
         // Draw Enemy HP Bars (World Space -> Screen Space? No, usually world space above entity)
@@ -617,6 +631,72 @@ export class Renderer {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(text, w / 2, h / 2);
+
+        ctx.restore();
+    }
+
+    private drawMobileControls() {
+        const input = InputManager.getInstance();
+        // Only draw if we are on a touch-enabled device
+        if (!input.isTouchDevice) return;
+
+        const w = this.width;
+        const h = this.height;
+
+        this.drawCircleButton(w - 80, h - 80, 45, "DASH", "#FFF");
+        this.drawCircleButton(w - 80, h - 190, 40, "RELOAD", "#FFFF00");
+        this.drawCircleButton(w - 180, h - 80, 40, "PUSH", "#00FFFF");
+    }
+
+    private drawCircleButton(x: number, y: number, r: number, label: string, color: string) {
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.resetTransform();
+
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = color;
+        ctx.font = 'bold 14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, x, y);
+
+        ctx.restore();
+    }
+
+    private drawJoystick() {
+        const input = InputManager.getInstance();
+        if (!input.joystick.active) return;
+
+        const ctx = this.ctx;
+        const origin = input.joystick.origin;
+        // 50 is the maxDist we used in InputManager
+        const currentX = origin.x + input.joystick.x * 50;
+        const currentY = origin.y + input.joystick.y * 50;
+
+        ctx.save();
+        ctx.resetTransform(); // Screen space
+
+        // Base
+        ctx.beginPath();
+        ctx.arc(origin.x, origin.y, 50, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.fill();
+        ctx.stroke();
+
+        // Knob
+        ctx.beginPath();
+        ctx.arc(currentX, currentY, 20, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.fill();
 
         ctx.restore();
     }

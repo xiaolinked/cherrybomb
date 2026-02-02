@@ -24,7 +24,7 @@ export class Enemy extends Entity {
         this.shield = this.maxShield;
 
         this.speed = config.enemy.movement.walk_speed;
-        this.radius = 0.6; // Triangle base is 1.2, so radius 0.6 is good for physics
+        this.radius = config.enemy.radius;
         this.color = '#FFD84D'; // Yellow
 
         // Attach Bomb
@@ -46,7 +46,7 @@ export class Enemy extends Entity {
 
         this.angle = Math.atan2(dy, dx);
 
-        if (dist > 0.1) {
+        if (dist > config.enemy.movement.stop_distance) {
             // Normalize direction
             const dirX = dx / dist;
             const dirY = dy / dist;
@@ -66,14 +66,14 @@ export class Enemy extends Entity {
             for (const other of game.enemies) {
                 if (other === this) continue;
                 const d2 = this.distanceTo(other);
-                if (d2 < this.radius * 2) {
+                if (d2 < this.radius * config.enemy.separation_distance_multiplier) {
                     // Push away
                     const pushX = this.x - other.x;
                     const pushY = this.y - other.y;
                     const len = Math.sqrt(pushX * pushX + pushY * pushY);
-                    if (len > 0.01) {
-                        this.x += (pushX / len) * this.speed * 0.5 * dt;
-                        this.y += (pushY / len) * this.speed * 0.5 * dt;
+                    if (len > config.enemy.movement.separation_min_distance) {
+                        this.x += (pushX / len) * this.speed * config.enemy.movement.separation_push_factor * dt;
+                        this.y += (pushY / len) * this.speed * config.enemy.movement.separation_push_factor * dt;
                     }
                 }
             }
