@@ -28,20 +28,30 @@ export class SplitterEnemy extends Enemy {
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
 
-        // Draw Splitter shape (Compound triangle)
+        // Draw Octagon
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        ctx.moveTo(0.7, 0);
-        ctx.lineTo(-0.7, 0.6);
-        ctx.lineTo(-0.7, -0.6);
+        const r = 0.8;
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI / 4) * i;
+            const px = Math.cos(angle) * r;
+            const py = Math.sin(angle) * r;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
         ctx.closePath();
         ctx.fill();
 
-        // Inner detail
+        // Inner detail (Center Circle)
         ctx.fillStyle = '#C71585';
         ctx.beginPath();
-        ctx.arc(-0.2, 0, 0.3, 0, Math.PI * 2);
+        ctx.arc(0, 0, 0.3, 0, Math.PI * 2);
         ctx.fill();
+
+        // Outline
+        ctx.strokeStyle = '#8B004F';
+        ctx.lineWidth = 0.05;
+        ctx.stroke();
 
         ctx.restore();
 

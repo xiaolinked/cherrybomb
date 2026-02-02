@@ -40,14 +40,15 @@ export class FastEnemy extends Enemy {
 
         ctx.rotate(this.angle);
 
-        // Draw Sharp Triangle (Aerodynamic)
+        // Draw Sharp Diamond (Aerodynamic)
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        const h = 1.6; // Longer
-        const b = 0.8; // Thinner
-        ctx.moveTo(h / 2, 0);
-        ctx.lineTo(-h / 2, b / 2);
-        ctx.lineTo(-h / 2, -b / 2);
+        const h = 1.8; // Length
+        const b = 0.6; // Width
+        ctx.moveTo(h / 2, 0);          // Front
+        ctx.lineTo(0, b / 2);          // Side
+        ctx.lineTo(-h / 2, 0);         // Back
+        ctx.lineTo(0, -b / 2);         // Other Side
         ctx.closePath();
         ctx.fill();
 

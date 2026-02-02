@@ -39,16 +39,18 @@ export class TankEnemy extends Enemy {
 
         ctx.rotate(this.angle);
 
-        // Draw Bulkier Shape (Pentagon-ish or Wide Triangle)
+        // Draw Bulky Hexagon
         ctx.fillStyle = this.color;
 
         ctx.beginPath();
-        // Custom heavy shape
-        ctx.moveTo(1.0, 0);
-        ctx.lineTo(0.2, 1.0);
-        ctx.lineTo(-1.0, 0.6);
-        ctx.lineTo(-1.0, -0.6);
-        ctx.lineTo(0.2, -1.0);
+        const r = 1.0;
+        for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI / 3) * i;
+            const px = Math.cos(angle) * r;
+            const py = Math.sin(angle) * r;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
         ctx.closePath();
         ctx.fill();
 

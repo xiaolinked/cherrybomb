@@ -24,16 +24,17 @@ export class MiniEnemy extends Enemy {
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
 
-        // Small triangle
-        const h = 0.8;
-        const b = 0.6;
+        // Small Circle
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        ctx.moveTo(h / 2, 0);
-        ctx.lineTo(-h / 2, b / 2);
-        ctx.lineTo(-h / 2, -b / 2);
-        ctx.closePath();
+        ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
         ctx.fill();
+
+        // Outline
+        ctx.strokeStyle = '#8B4513';
+        ctx.lineWidth = 0.03;
+        ctx.stroke();
+
         ctx.restore();
 
         if (this.bomb && this.bomb.parent === this) {

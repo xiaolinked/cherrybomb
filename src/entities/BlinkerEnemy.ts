@@ -49,14 +49,40 @@ export class BlinkerEnemy extends Enemy {
     }
 
     public draw(ctx: CanvasRenderingContext2D): void {
-        // Draw with glitch effect
         ctx.save();
+        ctx.globalAlpha = this.opacity;
+        ctx.translate(this.x, this.y);
+
+        // Glitch effect before blink
         if (this.blinkTimer < 0.2) {
-            // Glitchy flash before blink
             ctx.translate((Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2);
-            ctx.globalAlpha = 0.5;
         }
-        super.draw(ctx);
+
+        // Bloom
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = this.color;
+
+        ctx.rotate(this.angle);
+
+        // Draw Square
+        const s = 1.0;
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-s / 2, -s / 2, s, s);
+
+        // Inner Square (Lighter)
+        ctx.fillStyle = '#DDA0DD';
+        ctx.fillRect(-s / 4, -s / 4, s / 2, s / 2);
+
+        // Outline
+        ctx.strokeStyle = '#4B0082';
+        ctx.lineWidth = 0.05;
+        ctx.strokeRect(-s / 2, -s / 2, s, s);
+
         ctx.restore();
+
+        // Bomb
+        if (this.bomb && this.bomb.parent === this) {
+            this.bomb.draw(ctx);
+        }
     }
 }
