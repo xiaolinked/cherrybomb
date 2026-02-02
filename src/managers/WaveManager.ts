@@ -130,14 +130,56 @@ export class WaveManager {
 
     private handleSpawning(dt: number) {
         const config = ConfigManager.getConfig();
+        const hero = this.game.hero;
+        if (!hero) return;
 
-        // Total active (on screen) + pending telegraphs
-        // (REMOVED LIMIT for intensity)
+        // 1. Difficulty Scaling for Spawning
+        // Waves 1-5 are "way easier" with strict limits and slow spawns
+        let maxOnScreen = 15;
+        let spawnDelay = config.enemy.spawn.spawn_delay; // Default 0.5
 
+        if (this.currentWave <= 5) {
+            // Wave 1: 5 on screen, 2.5s delay
+            // Wave 5: 12 on screen, 0.7s delay
+            const progress = (this.currentWave - 1) / 4; // 0 to 1
+            maxOnScreen = Math.floor(5 + progress * 7);
+            spawnDelay = 2.5 - (progress * 1.8);
+        } else {
+            // Wave 6+: Progressive increase in density
+            maxOnScreen = 12 + (this.currentWave - 5) * 3;
+            spawnDelay = config.enemy.spawn.spawn_delay;
+        }
+
+        // 2. Count On-Screen Enemies
+        // We use viewport bounds + small margin (padding)
+        const halfWidth = (window.innerWidth / 2) / 20;
+        const halfHeight = (window.innerHeight / 2) / 20;
+        const padding = 2.0;
+
+        let onScreenCount = 0;
+        for (const enemy of this.game.enemies) {
+            if (enemy.isFadingOut) continue;
+            const dx = Math.abs(enemy.x - hero.x);
+            const dy = Math.abs(enemy.y - hero.y);
+            if (dx < halfWidth + padding && dy < halfHeight + padding) {
+                onScreenCount++;
+            }
+        }
+
+        // Count telegraphs too (potential soon-to-be enemies)
+        for (const t of this.activeTelegraphs) {
+            const dx = Math.abs(t.x - hero.x);
+            const dy = Math.abs(t.y - hero.y);
+            if (dx < halfWidth + padding && dy < halfHeight + padding) {
+                onScreenCount++;
+            }
+        }
+
+        // 3. Spawning
         this.spawnTimer -= dt;
-        if (this.spawnTimer <= 0) {
+        if (this.spawnTimer <= 0 && onScreenCount < maxOnScreen) {
             this.queueTelegraph();
-            this.spawnTimer = config.enemy.spawn.spawn_delay;
+            this.spawnTimer = spawnDelay;
         }
     }
 
