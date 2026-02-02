@@ -193,14 +193,17 @@ export class Game {
         }
     }
 
-    private buyUpgrade(type: string, cost: number) {
-        if (this.coinCount >= cost) {
+    private buyUpgrade(index: number) {
+        const opt = this.currentShopOptions[index];
+        if (!opt) return;
+
+        if (this.coinCount >= opt.cost) {
             const config = ConfigManager.getConfig();
-            this.coinCount -= cost;
+            this.coinCount -= opt.cost;
             this.shopCooldown = 0.3;
             AudioManager.playBuy();
 
-            switch (type) {
+            switch (opt.type) {
                 case 'damage':
                     config.blaster.bullet_damage += config.blaster.upgrades.damage_increment;
                     break;
@@ -219,6 +222,9 @@ export class Game {
                     this.hero.stamina = this.hero.maxStamina;
                     break;
             }
+
+            // Remove item from shop
+            this.currentShopOptions[index] = null as any;
         } else {
             this.shopCooldown = 0.3;
         }
@@ -268,10 +274,7 @@ export class Game {
                 for (let i = 0; i < 3; i++) {
                     const opt = this.currentShopOptions[i];
                     if (opt && input.keys[(i + 1).toString()]) {
-                        if (this.coinCount >= opt.cost) {
-                            this.buyUpgrade(opt.type, opt.cost);
-                            this.shopCooldown = 0.3;
-                        }
+                        this.buyUpgrade(i);
                     }
                 }
             }

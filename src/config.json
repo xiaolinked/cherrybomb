@@ -27,7 +27,7 @@
     "abilities": {
         "dash": {
             "distance": 3.0,
-            "stamina_cost": 30,
+            "stamina_cost": 16,
             "cooldown": 0.2,
             "iframe_duration": 0.15
         },

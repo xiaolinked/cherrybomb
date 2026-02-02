@@ -159,7 +159,7 @@ export class Renderer {
         // Low Health Warning (Red Pulsing Vignette)
         if (game.hero && !game.hero.isDead) {
             const hpPct = game.hero.hp / game.hero.maxHp;
-            if (hpPct <= 0.2) {
+            if (hpPct <= 0.3) {
                 const pulse = (Math.sin(performance.now() / 200) + 1) / 2; // 0 to 1 pulsing
                 const opacity = 0.1 + pulse * 0.4; // 10% to 50% opacity
 
