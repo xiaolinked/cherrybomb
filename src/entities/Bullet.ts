@@ -41,7 +41,15 @@ export class Bullet extends Entity {
             return;
         }
 
-        // Collision
+        // Collision with Obstacles
+        for (const obs of game.obstacles) {
+            if (this.distanceTo(obs) < (this.radius + obs.radius)) {
+                this.isDead = true;
+                return;
+            }
+        }
+
+        // Collision with Enemies
         for (const enemy of game.enemies) {
             if (this.distanceTo(enemy) < (this.radius + enemy.radius)) {
                 enemy.takeDamage(this.damage);

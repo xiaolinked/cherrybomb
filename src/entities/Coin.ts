@@ -3,6 +3,7 @@ import { Game } from "../game";
 
 export class Coin extends Entity {
     public value: number = 1;
+    public isLucky: boolean = false;
     public magnetRange: number = 3.0; // Distance to start flying to hero
     public speed: number = 8.0;
 
@@ -10,11 +11,12 @@ export class Coin extends Entity {
     private bounceOffset: number = Math.random() * Math.PI * 2;
     private age: number = 0;
 
-    constructor(x: number, y: number, value: number = 1) {
+    constructor(x: number, y: number, value: number = 1, isLucky: boolean = false) {
         super(x, y);
         this.value = value;
-        this.color = '#FFD700'; // Gold
-        this.radius = 0.25;
+        this.isLucky = isLucky;
+        this.color = isLucky ? '#FF00FF' : '#FFD700'; // Pink for lucky, Gold otherwise
+        this.radius = isLucky ? 0.35 : 0.25;
     }
 
     public update(dt: number, game: Game): void {
@@ -48,6 +50,12 @@ export class Coin extends Entity {
         const bounce = Math.sin(this.age * 5 + this.bounceOffset) * 0.1;
         ctx.translate(0, bounce);
 
+        // Lucky Glow
+        if (this.isLucky) {
+            ctx.shadowColor = '#FF00FF';
+            ctx.shadowBlur = 10;
+        }
+
         ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
@@ -58,6 +66,15 @@ export class Coin extends Entity {
         ctx.beginPath();
         ctx.arc(-0.1, -0.1, 0.08, 0, Math.PI * 2);
         ctx.fill();
+
+        // 3x Text
+        if (this.isLucky) {
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#FFF';
+            ctx.font = 'bold 0.4px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText("3X", 0, 0.15);
+        }
 
         ctx.restore();
     }

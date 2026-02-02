@@ -9,9 +9,17 @@ export enum WaveState {
     SHOP        // Intermission
 }
 
+export interface SpawnTelegraph {
+    x: number;
+    y: number;
+    timer: number;
+    maxTimer: number;
+}
+
 export class WaveManager {
     private game: Game;
     public currentWave: number = 0;
+    public activeTelegraphs: SpawnTelegraph[] = [];
 
     public state: WaveState = WaveState.READY;
     public stateTimer: number = 0; // Generic timer for countdown/wave
@@ -39,6 +47,7 @@ export class WaveManager {
                     this.endWave();
                 } else {
                     this.handleSpawning(dt);
+                    this.updateTelegraphs(dt);
                 }
                 break;
             case WaveState.SHOP:
@@ -82,10 +91,11 @@ export class WaveManager {
         this.game.hero.stamina = this.game.hero.maxStamina;
         console.log("Hero HP & Stamina Restored.");
 
-        // Clear Enemies, Bombs, and Coins
+        // Clear Enemies, Bombs, Coins, and Telegraphs
         this.game.enemies = [];
         this.game.bombs = [];
         this.game.coins = [];
+        this.activeTelegraphs = [];
 
         this.game.generateUpgradeOptions();
     }
@@ -93,34 +103,44 @@ export class WaveManager {
     private handleSpawning(dt: number) {
         const config = ConfigManager.getConfig();
 
-        // Target Count Scaling
-        const targetCount = Math.floor(config.game_flow.wave_enemy_count_base * Math.pow(config.game_flow.wave_enemy_count_scaling, this.currentWave - 1));
+        // Total active (on screen) + pending telegraphs
+        // (REMOVED LIMIT for intensity)
 
-        // Spawn if below cap
-        if (this.game.enemies.length < targetCount) {
-            this.spawnTimer -= dt;
-            if (this.spawnTimer <= 0) {
-                this.spawnEnemy();
-                this.spawnTimer = config.enemy.spawn.spawn_delay;
+        this.spawnTimer -= dt;
+        if (this.spawnTimer <= 0) {
+            this.queueTelegraph();
+            this.spawnTimer = config.enemy.spawn.spawn_delay;
+        }
+    }
+
+    private updateTelegraphs(dt: number) {
+        for (let i = this.activeTelegraphs.length - 1; i >= 0; i--) {
+            const t = this.activeTelegraphs[i];
+            t.timer -= dt;
+            if (t.timer <= 0) {
+                this.spawnEnemyAt(t.x, t.y);
+                this.activeTelegraphs.splice(i, 1);
             }
         }
     }
 
-    private spawnEnemy() {
+    private queueTelegraph() {
         const config = ConfigManager.getConfig();
-        const halfSize = config.arena.size / 2 - 1.5; // Stay within arena with margin
-
-        // Random Position: Attempt to spawn at safe distance
         const angle = Math.random() * Math.PI * 2;
         const dist = config.enemy.spawn.min_distance_from_hero + Math.random() * (config.enemy.spawn.max_distance_from_hero - config.enemy.spawn.min_distance_from_hero);
 
-        let x = this.game.hero.x + Math.cos(angle) * dist;
-        let y = this.game.hero.y + Math.sin(angle) * dist;
+        const x = this.game.hero.x + Math.cos(angle) * dist;
+        const y = this.game.hero.y + Math.sin(angle) * dist;
 
-        // Clamp to Arena
-        x = Math.max(-halfSize, Math.min(halfSize, x));
-        y = Math.max(-halfSize, Math.min(halfSize, y));
+        this.activeTelegraphs.push({
+            x, y,
+            timer: 1.0, // 1 second anticipation
+            maxTimer: 1.0
+        });
+    }
 
+    private spawnEnemyAt(x: number, y: number) {
+        const config = ConfigManager.getConfig();
         const enemy = new Enemy(x, y);
 
         // Apply Wave Scaling

@@ -3,7 +3,9 @@ export class InputManager {
     private static instance: InputManager;
     public keys: { [key: string]: boolean } = {};
     public mouse: { x: number; y: number; leftDown: boolean } = { x: 0, y: 0, leftDown: false };
+    public clickOccurred: boolean = false;
     public mouseWorld: { x: number; y: number } = { x: 0, y: 0 };
+    public cameraOffset: { x: number; y: number } = { x: 0, y: 0 };
 
     private constructor() {
         window.addEventListener('keydown', (e) => this.keys[e.key.toLowerCase()] = true);
@@ -13,20 +15,30 @@ export class InputManager {
             this.mouse.y = e.clientY;
             this.updateMouseWorld();
         });
-        window.addEventListener('mousedown', () => this.mouse.leftDown = true);
+        window.addEventListener('mousedown', () => {
+            this.mouse.leftDown = true;
+            this.clickOccurred = true;
+        });
         window.addEventListener('mouseup', () => this.mouse.leftDown = false);
         window.addEventListener('resize', () => this.updateMouseWorld());
     }
 
-    private updateMouseWorld() {
-        // Simple conversion assuming camera is centered and scale is fixed (20)
-        // TODO: Get actual camera transform from Renderer if it becomes dynamic
+    public isNewClick(): boolean {
+        if (this.clickOccurred) {
+            this.clickOccurred = false;
+            return true;
+        }
+        return false;
+    }
+
+    public updateMouseWorld() {
+        // Pixel to Units conversion including Camera
         const width = window.innerWidth;
         const height = window.innerHeight;
         const pixelsPerUnit = 20;
 
-        this.mouseWorld.x = (this.mouse.x - width / 2) / pixelsPerUnit;
-        this.mouseWorld.y = (this.mouse.y - height / 2) / pixelsPerUnit;
+        this.mouseWorld.x = this.cameraOffset.x + (this.mouse.x - width / 2) / pixelsPerUnit;
+        this.mouseWorld.y = this.cameraOffset.y + (this.mouse.y - height / 2) / pixelsPerUnit;
     }
 
     public static getInstance(): InputManager {

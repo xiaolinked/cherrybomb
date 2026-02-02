@@ -104,6 +104,12 @@ export class Hero extends Entity {
             this.pushBackVisualTimer = 0.2; // Show ring for 0.2s
         }
 
+        // Manual Reload (R)
+        if (input.keys['r'] && this.reloadTimer <= 0 && this.ammo < this.maxAmmo) {
+            this.reloadTimer = config.blaster.reload_time;
+            AudioManager.playReload();
+        }
+
         // Shooting
         if (input.mouse.leftDown && this.fireTimer <= 0 && this.reloadTimer <= 0) {
             if (this.ammo > 0) {
@@ -174,12 +180,10 @@ export class Hero extends Entity {
             if (this.afterimages[i].alpha <= 0) this.afterimages.splice(i, 1);
         }
 
-        // 5. Boundary Check (Arena)
-        const halfSize = config.arena.size / 2;
-        if (this.x < -halfSize) this.x = -halfSize;
-        if (this.x > halfSize) this.x = halfSize;
-        if (this.y < -halfSize) this.y = -halfSize;
-        if (this.y > halfSize) this.y = halfSize;
+        // 5. Boundary Check (Arena) - Disabled for endless
+        if (!config.arena.is_endless) {
+            // No longer used
+        }
     }
 
     private performPushBack(game: Game) {
@@ -200,10 +204,7 @@ export class Hero extends Entity {
                 enemy.x += Math.cos(angle) * pushDist;
                 enemy.y += Math.sin(angle) * pushDist;
 
-                // Clamp Enemy to Arena (Quick fix to prevent flying into void)
-                const limit = config.arena.size / 2; // e.g. 15
-                enemy.x = Math.max(-limit, Math.min(limit, enemy.x));
-                enemy.y = Math.max(-limit, Math.min(limit, enemy.y));
+                // No clamping needed in endless
             }
         }
     }
@@ -218,6 +219,7 @@ export class Hero extends Entity {
 
         this.hp -= finalDamage;
         this.damageFlashTimer = 0.08; // VISUAL SPEC: Flash white for 0.08s
+        AudioManager.playHit();
 
         if (this.hp <= 0 && !this.isDead) {
             this.hp = 0;

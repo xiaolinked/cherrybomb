@@ -1,5 +1,6 @@
-import { Game } from './game';
 import { ConfigManager } from './config';
+import { Game } from './game';
+import { InputManager } from './input';
 
 export class Renderer {
     private ctx: CanvasRenderingContext2D;
@@ -22,8 +23,10 @@ export class Renderer {
     }
 
     public render(game: Game) {
+        const entities = game.getEntities();
+
         // Update Shake
-        const dt = 1 / 60; // Approximate, or pass it in. Let's assume 60fps for simple shake decay.
+        const dt = 1 / 60;
         if (this.shakeTimer > 0) {
             this.shakeTimer -= dt;
         }
@@ -32,9 +35,20 @@ export class Renderer {
         this.ctx.fillStyle = '#111';
         this.ctx.fillRect(0, 0, this.width, this.height);
 
+        // Center camera on Hero if exists
+        const cameraX = entities.hero ? entities.hero.x : 0;
+        const cameraY = entities.hero ? entities.hero.y : 0;
+
+        // Sync InputManager with camera
+        const input = InputManager.getInstance();
+        input.cameraOffset.x = cameraX;
+        input.cameraOffset.y = cameraY;
+        input.updateMouseWorld();
+
         this.ctx.save();
 
-        // Center camera (0,0 is center of screen)
+        // 1. Screen Space to World Space Translation
+        // Center of screen
         this.ctx.translate(this.width / 2, this.height / 2);
 
         // Screen Shake Apply
@@ -44,30 +58,35 @@ export class Renderer {
             this.ctx.translate(sx, sy);
         }
 
+        // Zoom/Scale
         this.ctx.scale(this.pixelsPerUnit, this.pixelsPerUnit);
 
-        // Draw Grid
-        this.drawArena();
+        // Camera Offset (negative hero pos)
+        this.ctx.translate(-cameraX, -cameraY);
 
+        // Draw Infinite Grid
+        this.drawInfiniteGrid(cameraX, cameraY);
+
+        // Draw Obstacles
+        if (game.obstacles) {
+            for (const obstacle of game.obstacles) {
+                obstacle.draw(this.ctx);
+            }
+        }
 
         // Draw Entities
-        const entities = game.getEntities();
-
         for (const enemy of entities.enemies) {
             enemy.draw(this.ctx);
         }
 
-        // Draw Detached Bombs
         for (const bomb of entities.bombs) {
             bomb.draw(this.ctx);
         }
 
-        // Draw Bullets
         for (const bullet of entities.bullets) {
             bullet.draw(this.ctx);
         }
 
-        // Draw Coins
         if (entities.coins) {
             for (const coin of entities.coins) {
                 coin.draw(this.ctx);
@@ -78,17 +97,55 @@ export class Renderer {
             entities.hero.draw(this.ctx);
         }
 
+        this.drawTelegraphs(game);
         this.drawEnemyBars(game);
-        this.drawUI(game);
 
-        this.ctx.restore();
+        this.ctx.restore(); // Back to screen space
+
+        // --- Atmospheric Dimming (Conditional) ---
+        // Only dim when in intermissions (Ready/Shop)
+        if (game.waveManager.isShopOpen || game.waveManager.isReady) {
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+            this.ctx.fillRect(0, 0, this.width, this.height);
+        }
+
+        this.drawUI(game);
 
         if (game.deathHighlightTimer > 0) {
             this.drawDeathClarity(game);
         }
     }
 
-    private drawUI(game: any) {
+    private drawInfiniteGrid(cameraX: number, cameraY: number) {
+        const ctx = this.ctx;
+        const config = ConfigManager.getConfig();
+        const gridSize = config.arena.grid_size || 2;
+
+        // Calculate bounds in world space
+        const halfWidth = (this.width / 2) / this.pixelsPerUnit;
+        const halfHeight = (this.height / 2) / this.pixelsPerUnit;
+
+        const startX = Math.floor((cameraX - halfWidth) / gridSize) * gridSize;
+        const endX = Math.ceil((cameraX + halfWidth) / gridSize) * gridSize;
+        const startY = Math.floor((cameraY - halfHeight) / gridSize) * gridSize;
+        const endY = Math.ceil((cameraY + halfHeight) / gridSize) * gridSize;
+
+        ctx.strokeStyle = '#222';
+        ctx.lineWidth = 0.05;
+
+        ctx.beginPath();
+        for (let x = startX; x <= endX; x += gridSize) {
+            ctx.moveTo(x, startY);
+            ctx.lineTo(x, endY);
+        }
+        for (let y = startY; y <= endY; y += gridSize) {
+            ctx.moveTo(startX, y);
+            ctx.lineTo(endX, y);
+        }
+        ctx.stroke();
+    }
+
+    private drawUI(game: Game) {
         const ctx = this.ctx;
         const waveMgr = game.waveManager;
 
@@ -114,7 +171,7 @@ export class Renderer {
 
         if (waveMgr.isWaveActive) {
             ctx.fillStyle = '#FFFFFF';
-            if (waveMgr.waveTimer <= 5) ctx.fillStyle = '#FF0000'; // Warning
+            if (waveMgr.stateTimer <= 5) ctx.fillStyle = '#FF0000'; // Warning
             ctx.fillText(waveMgr.stateTimer.toFixed(1), centerX, 40); // Use stateTimer
 
             ctx.font = '20px sans-serif';
@@ -131,23 +188,31 @@ export class Renderer {
             ctx.fillText("GET READY!", centerX, 40);
         }
         else if (waveMgr.isReady) {
-            ctx.fillStyle = '#00FF00';
-            ctx.font = 'bold 30px sans-serif';
-            ctx.fillText("PRESS SPACE TO START", centerX, height / 2);
+            // Game Title
+            ctx.fillStyle = '#FF0000';
+            ctx.font = 'bold 80px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText("HOT ZONE", centerX, height / 2 - 120);
+
+            // Subtitle
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 24px sans-serif';
+            ctx.fillText("MADE BY ANTON LI USING AI", centerX, height / 2 - 80);
+
+            this.drawButton(centerX, height / 2, 280, 55, "START GAME", "#00FF00");
 
             ctx.font = '20px sans-serif';
             ctx.fillStyle = '#AAA';
-            ctx.fillText("WASD/Arrows to Move, Mouse to Aim", centerX, height / 2 + 40);
+            ctx.textAlign = 'center';
+            ctx.fillText("WASD/Arrows to Move, Mouse to Aim", centerX, height / 2 + 60);
         }
         else if (waveMgr.isShopOpen) {
             // SHOP UI
             ctx.fillStyle = '#FFFF00';
             ctx.fillText("SHOP OPEN", centerX, 40);
 
-            // Resume Prompt
-            ctx.font = '20px sans-serif';
-            ctx.fillStyle = '#AAAAAA';
-            ctx.fillText("Press SPACE to Start Wave", centerX, 80);
+            // Next Wave Button
+            this.drawButton(centerX, 85, 220, 45, "NEXT WAVE", "#FFFF00");
 
             const startY = 150;
             const cardWidth = 200;
@@ -189,69 +254,109 @@ export class Renderer {
                 // Cost
                 ctx.font = 'bold 16px monospace';
                 ctx.fillStyle = game.coinCount >= opt.cost ? '#00FF00' : '#FF0000';
-                ctx.fillText(`$${opt.cost}`, x + cardWidth / 2, y + 105);
+                ctx.fillText(`$${opt.cost} `, x + cardWidth / 2, y + 105);
             }
 
             ctx.textAlign = 'center'; // Reset for other draws
         }
 
-        // 2. Hero HP (Bottom Center or Left)
+        // 2. Hero HUD (Bottom Center)
         if (game.hero) {
-            const hpPct = game.hero.hp / game.hero.maxHp;
-            ctx.fillStyle = '#555';
-            ctx.fillRect(centerX - 100, height - 40, 200, 20); // BG
+            ctx.save();
+            ctx.textAlign = 'center';
 
-            ctx.fillStyle = hpPct > 0.3 ? '#00FF00' : '#FF0000';
-            ctx.fillRect(centerX - 100, height - 40, 200 * hpPct, 20); // Bar
+            // --- HUD BACKING PLATE ---
+            const plateWidth = 240;
+            const plateHeight = 110;
+            const plateX = centerX - plateWidth / 2;
+            const plateY = height - plateHeight - 15; // Raised 15px from bottom
 
-            ctx.strokeStyle = '#FFF';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(centerX - 100, height - 40, 200, 20);
-
-            // 3. Stamina Bar (Yellow, Above HP)
-            const stamPct = game.hero.stamina / game.hero.maxStamina;
-            ctx.fillStyle = '#333';
-            ctx.fillRect(centerX - 100, height - 55, 200, 10); // BG
-
-            ctx.fillStyle = '#FFFF00'; // Yellow
-            ctx.fillRect(centerX - 100, height - 55, 200 * stamPct, 10); // Bar
-
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.beginPath();
+            ctx.roundRect(plateX, plateY, plateWidth, plateHeight, 10);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
             ctx.lineWidth = 1;
-            ctx.strokeRect(centerX - 100, height - 55, 200, 10);
+            ctx.stroke();
 
-            // 4. Ammo Bar (Cyan/White, Above Stamina)
+            // Labels Global Config
+            ctx.shadowBlur = 4;
+            ctx.shadowColor = 'rgba(0,0,0,1)';
+
+            // --- 4. AMMO (Top Bar) ---
+            const ammoY = plateY + 25;
             const ammoPct = game.hero.ammo / game.hero.maxAmmo;
+
+            ctx.fillStyle = '#FFFF00'; // Yellow Label
+            ctx.font = 'bold 12px monospace';
+            ctx.fillText("AMMO", centerX, ammoY - 12);
+
+            ctx.shadowBlur = 0;
             ctx.fillStyle = '#333';
-            ctx.fillRect(centerX - 100, height - 70, 200, 10); // BG
+            ctx.fillRect(centerX - 100, ammoY, 200, 10); // BG
 
             if (game.hero.reloadTimer > 0) {
-                // Flash or pulsing color for reloading
                 const flash = Math.sin(performance.now() / 100) * 0.5 + 0.5;
-                ctx.fillStyle = `rgba(0, 255, 255, ${flash})`;
-                ctx.fillRect(centerX - 100, height - 70, 200, 10);
+                ctx.fillStyle = `rgba(255, 255, 0, ${flash})`; // Yellow Flash
+                ctx.fillRect(centerX - 100, ammoY, 200, 10);
 
                 ctx.fillStyle = '#FFF';
-                ctx.font = 'bold 12px sans-serif';
-                ctx.fillText("RELOADING...", centerX, height - 62);
+                ctx.font = 'bold 10px sans-serif';
+                ctx.fillText("RELOADING...", centerX, ammoY + 8);
             } else {
-                ctx.fillStyle = '#00FFFF'; // Cyan
-                ctx.fillRect(centerX - 100, height - 70, 200 * ammoPct, 10);
+                ctx.fillStyle = '#FFFF00'; // Yellow Bar
+                ctx.fillRect(centerX - 100, ammoY, 200 * ammoPct, 10);
 
-                // Segmented lines for ammo
+                // Segmented lines
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 1;
                 for (let i = 1; i < game.hero.maxAmmo; i++) {
-                    const x = (centerX - 100) + (200 / game.hero.maxAmmo) * i;
+                    const xPos = (centerX - 100) + (200 / game.hero.maxAmmo) * i;
                     ctx.beginPath();
-                    ctx.moveTo(x, height - 70);
-                    ctx.lineTo(x, height - 60);
+                    ctx.moveTo(xPos, ammoY);
+                    ctx.lineTo(xPos, ammoY + 10);
                     ctx.stroke();
                 }
             }
-
             ctx.strokeStyle = '#FFF';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(centerX - 100, height - 70, 200, 10);
+            ctx.strokeRect(centerX - 100, ammoY, 200, 10);
+
+            // --- 3. STAMINA (Middle Bar) ---
+            const stamY = plateY + 55;
+            const stamPct = game.hero.stamina / game.hero.maxStamina;
+
+            ctx.shadowBlur = 4;
+            ctx.fillStyle = '#5DADE2'; // Blue Label
+            ctx.font = 'bold 12px monospace';
+            ctx.fillText("STAMINA", centerX, stamY - 8);
+
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#333';
+            ctx.fillRect(centerX - 100, stamY, 200, 8); // BG
+            ctx.fillStyle = '#2E86C1'; // Blue Bar
+            ctx.fillRect(centerX - 100, stamY, 200 * stamPct, 8);
+            ctx.strokeStyle = '#FFF';
+            ctx.strokeRect(centerX - 100, stamY, 200, 8);
+
+            // --- 2. HEALTH (Bottom Bar) ---
+            const healthY = plateY + 85;
+            const hpPct = game.hero.hp / game.hero.maxHp;
+
+            ctx.shadowBlur = 4;
+            ctx.fillStyle = '#2ECC71'; // Green Label
+            ctx.font = 'bold 14px monospace';
+            ctx.fillText("HEALTH", centerX, healthY - 10);
+
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#555';
+            ctx.fillRect(centerX - 100, healthY, 200, 15); // BG
+            ctx.fillStyle = hpPct > 0.3 ? '#27AE60' : '#FF0000'; // Green Bar (Red if low)
+            ctx.fillRect(centerX - 100, healthY, 200 * hpPct, 15);
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#FFF';
+            ctx.strokeRect(centerX - 100, healthY, 200, 15);
+
+            ctx.restore();
         }
 
         // Game Over Overlay
@@ -319,30 +424,6 @@ export class Renderer {
         ctx.restore();
     }
 
-    private drawArena() {
-        const arenaSize = ConfigManager.getConfig().arena.size;
-
-        this.ctx.strokeStyle = '#333';
-        this.ctx.lineWidth = 0.1;
-
-        const half = arenaSize / 2;
-
-        // Draw border
-        this.ctx.strokeStyle = '#555';
-        this.ctx.lineWidth = 0.2;
-        this.ctx.strokeRect(-half, -half, arenaSize, arenaSize);
-
-        // Draw grid lines
-        this.ctx.beginPath();
-        for (let i = -Math.floor(half); i <= half; i++) {
-            this.ctx.moveTo(i, -half);
-            this.ctx.lineTo(i, half);
-            this.ctx.moveTo(-half, i);
-            this.ctx.lineTo(half, i);
-        }
-        this.ctx.stroke();
-    }
-
     public triggerShake(duration: number, intensity: number) {
         this.shakeTimer = duration;
         this.shakeIntensity = intensity;
@@ -408,6 +489,71 @@ export class Renderer {
             ctx.fill();
             ctx.restore();
         }
+
+        ctx.restore();
+    }
+
+    private drawTelegraphs(game: Game) {
+        const ctx = this.ctx;
+        const telegraphs = game.waveManager.activeTelegraphs;
+
+        for (const t of telegraphs) {
+            ctx.save();
+            ctx.translate(t.x, t.y);
+
+            // Pulsing Scale & Alpha
+            const pulse = Math.sin(Date.now() * 0.015);
+            const scale = 0.7 + pulse * 0.2;
+            ctx.scale(scale, scale);
+
+            // Draw Red X
+            ctx.strokeStyle = '#FF0000';
+            ctx.lineWidth = 0.4;
+            ctx.lineCap = 'round';
+
+            const size = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(-size, -size);
+            ctx.lineTo(size, size);
+            ctx.moveTo(size, -size);
+            ctx.lineTo(-size, size);
+            ctx.stroke();
+
+            // Glow Aura
+            ctx.globalAlpha = 0.3 + pulse * 0.1;
+            ctx.fillStyle = '#FF0000';
+            ctx.beginPath();
+            ctx.arc(0, 0, size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+
+            ctx.restore();
+        }
+    }
+
+    private drawButton(x: number, y: number, w: number, h: number, text: string, color: string) {
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.translate(x - w / 2, y - h / 2);
+
+        // Hover effect (simple)
+        const input = InputManager.getInstance();
+        const mx = input.mouse.x;
+        const my = input.mouse.y;
+        const isHover = mx >= x - w / 2 && mx <= x + w / 2 && my >= y - h / 2 && my <= y + h / 2;
+
+        ctx.fillStyle = isHover ? color : 'rgba(0, 0, 0, 0.5)';
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeRect(0, 0, w, h);
+
+        ctx.fillStyle = isHover ? '#000' : color;
+        ctx.font = 'bold 24px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, w / 2, h / 2);
 
         ctx.restore();
     }
