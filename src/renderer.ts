@@ -488,6 +488,7 @@ export class Renderer {
         }
 
         // Game Over Overlay
+        // Game Over Overlay
         if (game.hero.isDead) {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
             ctx.fillRect(0, 0, width, height);
@@ -495,15 +496,46 @@ export class Renderer {
             ctx.fillStyle = '#FF0000';
             ctx.font = 'bold 60px sans-serif';
             ctx.fillText("YOU DIED", centerX, height / 2);
-            ctx.font = '30px sans-serif';
-            ctx.fillStyle = '#FFF';
-            ctx.fillText("Press SPACE to Restart", centerX, height / 2 + 50);
+
+            // RESTART BUTTON
+            this.drawButton(centerX, height / 2 + 80, 200, 60, "RESTART", "#FFFFFF");
+        } else {
+            // Draw Mobile Action Buttons if Alive
+            const input = InputManager.getInstance();
+            if (input.isMobile) {
+                // Dash Button
+                const dashX = width - 100;
+                const dashY = height - 80;
+
+                ctx.beginPath();
+                ctx.arc(dashX, dashY, 40, 0, Math.PI * 2);
+                ctx.fillStyle = input.buttons.dash ? 'rgba(0, 255, 255, 0.5)' : 'rgba(0, 255, 255, 0.2)';
+                ctx.fill();
+                ctx.strokeStyle = '#00FFFF';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                ctx.fillStyle = '#FFF';
+                ctx.font = 'bold 16px sans-serif';
+                ctx.fillText("DASH", dashX, dashY);
+
+                // Push Button
+                const pushX = width - 100;
+                const pushY = height - 180;
+
+                ctx.beginPath();
+                ctx.arc(pushX, pushY, 40, 0, Math.PI * 2);
+                ctx.fillStyle = input.buttons.push ? 'rgba(255, 165, 0, 0.5)' : 'rgba(255, 165, 0, 0.2)';
+                ctx.fill();
+                ctx.strokeStyle = '#FFA500';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                ctx.fillStyle = '#FFF';
+                ctx.fillText("PUSH", pushX, pushY);
+            }
         }
 
-        // Draw Enemy HP Bars (World Space -> Screen Space? No, usually world space above entity)
-        // Check render method: transform is reset for drawUI. To draw above enemies, we need world coordinates.
-        // Option A: Use another world-space pass. Option B: Project coords.
-        // Let's do a world space pass in the main render method instead of drawUI.
         ctx.restore();
     }
 

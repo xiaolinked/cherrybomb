@@ -243,6 +243,21 @@ export class Game {
                 this.deathHighlightTimer = 0.7;
             }
             const input = InputManager.getInstance();
+
+            // Check for RESTART click
+            if (input.isNewClick()) {
+                const mx = input.mouse.x;
+                const my = input.mouse.y;
+                const cx = window.innerWidth / 2;
+                const cy = window.innerHeight / 2 + 80; // Match Renderer position
+
+                // Button 200x60
+                if (Math.abs(mx - cx) < 100 && Math.abs(my - cy) < 30) {
+                    this.restart();
+                }
+            }
+
+            // Still allow space for non-mobile preferrers
             if (input.keys[' ']) this.restart();
             return;
         }

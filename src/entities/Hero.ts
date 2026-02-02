@@ -97,8 +97,8 @@ export class Hero extends Entity {
             return;
         }
 
-        // Push Back Input (E)
-        if (input.keys['e'] && this.pushBackCooldownTimer <= 0) {
+        // Push Back Input (E or Mobile Button)
+        if ((input.keys['e'] || input.buttons.push) && this.pushBackCooldownTimer <= 0) {
             this.performPushBack(game);
             this.pushBackCooldownTimer = config.abilities.push_back.cooldown;
             this.pushBackVisualTimer = 0.2; // Show ring for 0.2s
@@ -170,8 +170,8 @@ export class Hero extends Entity {
         // 3. Normal Movement
         const axis = input.getAxis();
         if (axis.x !== 0 || axis.y !== 0) {
-            // Check for Dash Input (Shift or Space)
-            if ((input.keys['shift'] || input.keys[' ']) &&
+            // Check for Dash Input (Shift or Space or Mobile Button)
+            if ((input.keys['shift'] || input.keys[' '] || input.buttons.dash) &&
                 this.dashCooldownTimer <= 0 &&
                 this.stamina >= config.abilities.dash.stamina_cost) {
 

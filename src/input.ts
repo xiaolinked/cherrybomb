@@ -72,6 +72,31 @@ export class InputManager {
         // UI Buttons (Top quadrant exclusion?) 
         // Let's assume buttons are bottom right/left specific, but sticks capture regions.
 
+        // --- Virtual Buttons (Dash / Push) ---
+        // Dash: Bottom Right corner approx 15% 
+        // Push: Adjacent to Dash
+        // Assume Right Stick is generic right half, but buttons override it.
+        // Let's define button zones.
+        const dashX = width - 100;
+        const dashY = window.innerHeight - 80;
+
+        const pushX = width - 100;
+        const pushY = window.innerHeight - 180;
+
+        // Check Dash
+        const dDash = Math.sqrt((x - dashX) * (x - dashX) + (y - dashY) * (y - dashY));
+        if (dDash < 50) {
+            this.buttons.dash = true;
+            return;
+        }
+
+        // Check Push
+        const dPush = Math.sqrt((x - pushX) * (x - pushX) + (y - pushY) * (y - pushY));
+        if (dPush < 50) {
+            this.buttons.push = true;
+            return;
+        }
+
         // Left Half for Movement Stick
         if (x < width / 2) {
             if (!this.stickLeft.active) {
@@ -147,6 +172,15 @@ export class InputManager {
             this.stickRight.x = 0;
             this.stickRight.y = 0;
         }
+
+        // Release Buttons - Simplification: Just release all if any touch ends? 
+        // Or check nearest? For now, we only trigger TAP events for them really, but let's release.
+        // Actually for dash/push holding might not be needed.
+        // Let's just clear for safety. 
+        // Ideally we track ID. But for now, simple toggle off next frame consumption or just here.
+        this.buttons.dash = false;
+        this.buttons.push = false;
+
         this.mouse.leftDown = false;
     }
 
