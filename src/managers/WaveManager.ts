@@ -211,22 +211,31 @@ export class WaveManager {
 
     private spawnEnemyAt(x: number, y: number) {
         const config = ConfigManager.getConfig();
-
         const rand = Math.random();
         let enemy: Enemy;
 
-        // Unified Spawn Mix:
-        // 10% Tank, 15% Fast, 15% Blinker, 10% Splitter, 50% Normal
-        if (rand < 0.1) {
-            enemy = new TankEnemy(x, y);
-        } else if (rand < 0.25) {
-            enemy = new FastEnemy(x, y);
-        } else if (rand < 0.4) {
-            enemy = new BlinkerEnemy(x, y);
-        } else if (rand < 0.5) {
-            enemy = new SplitterEnemy(x, y);
+        if (this.currentWave <= 5) {
+            // Early Game (Waves 1-5): Only Regular (70%) and Fast (30%)
+            // Note: Mini enemies spawn from Splitters (which are 0% here)
+            if (rand < 0.3) {
+                enemy = new FastEnemy(x, y);
+            } else {
+                enemy = new Enemy(x, y);
+            }
         } else {
-            enemy = new Enemy(x, y);
+            // Mid/Late Game (Waves 6+): Full Chaos
+            // 10% Tank, 15% Fast, 15% Blinker, 10% Splitter, 50% Normal
+            if (rand < 0.1) {
+                enemy = new TankEnemy(x, y);
+            } else if (rand < 0.25) {
+                enemy = new FastEnemy(x, y);
+            } else if (rand < 0.4) {
+                enemy = new BlinkerEnemy(x, y);
+            } else if (rand < 0.5) {
+                enemy = new SplitterEnemy(x, y);
+            } else {
+                enemy = new Enemy(x, y);
+            }
         }
 
         // Apply Wave Scaling
