@@ -738,10 +738,8 @@ export class Renderer {
             ctx.fillText(en.desc, col1, y + 20);
         });
 
-        ctx.fillStyle = '#FFF';
-        ctx.textAlign = 'center';
-        ctx.font = '20px sans-serif';
-        ctx.fillText("Press Space or Click to Return", w / 2, h - 40);
+        // Close Button
+        this.drawButton(w - 100, h - 50, 160, 50, "CLOSE", "#FF5555");
 
         ctx.restore();
     }

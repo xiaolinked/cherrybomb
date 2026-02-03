@@ -310,7 +310,7 @@ export class Game {
                 }
             }
 
-            if (input.keys[' ']) this.restart();
+            if (input.keys['enter']) this.restart();
             return;
         }
 
@@ -319,17 +319,21 @@ export class Game {
             const my = input.mouse.y;
             const cx = window.innerWidth / 2;
             const h = window.innerHeight;
+            const width = window.innerWidth;
+            const height = window.innerHeight;
 
             if (this.waveManager.isIndexOpen) {
-                if (clickHappened || input.keys['escape'] || input.keys[' ']) {
+                const inCloseBtn = Math.abs(mx - (width - 100)) < 80 && Math.abs(my - (height - 50)) < 25;
+
+                if ((clickHappened && inCloseBtn) || input.keys['escape']) {
                     this.waveManager.triggerNextPhase();
                     return;
                 }
                 return;
             }
 
-            if (clickHappened || input.keys[' '] || input.keys['enter']) {
-                const isKeyboard = input.keys[' '] || input.keys['enter'];
+            if (clickHappened || input.keys['enter']) {
+                const isKeyboard = input.keys['enter'];
 
                 if (this.waveManager.isReady) {
                     const config = ConfigManager.getConfig();
@@ -339,7 +343,6 @@ export class Game {
                     if (isKeyboard || inStartBtn) {
                         this.waveManager.triggerNextPhase();
                         this.shopCooldown = config.ui.shop.cooldown_after_start;
-                        input.keys[' '] = false;
                         input.keys['enter'] = false;
                         return;
                     }
@@ -354,7 +357,6 @@ export class Game {
                     if (isKeyboard || inButtonArea) {
                         this.waveManager.triggerNextPhase();
                         this.shopCooldown = config.ui.shop.cooldown_after_close;
-                        input.keys[' '] = false;
                         input.keys['enter'] = false;
                         return;
                     }
