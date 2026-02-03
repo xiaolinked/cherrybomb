@@ -297,8 +297,13 @@ export class Hero extends Entity {
         const w = 1.0;
         const h = 1.4;
 
+        // Visual Polish: Keep color but add white glow/silhouette during flash
         if (this.damageFlashTimer > 0) {
-            ctx.fillStyle = '#FFFFFF';
+            // Flicker effect: solid white only half the time
+            const isWhiteFrame = Math.floor(this.damageFlashTimer * 100) % 2 === 0;
+            ctx.fillStyle = isWhiteFrame ? '#FFFFFF' : '#2F80FF';
+            ctx.shadowColor = '#FFFFFF';
+            ctx.shadowBlur = 20;
         } else {
             ctx.fillStyle = '#2F80FF';
         }
@@ -306,7 +311,7 @@ export class Hero extends Entity {
         ctx.fillRect(-w / 2, -h / 2, w, h);
 
         // Outline
-        ctx.strokeStyle = '#0B3D91';
+        ctx.strokeStyle = this.damageFlashTimer > 0 ? '#FFF' : '#0B3D91';
         ctx.lineWidth = 0.05;
         ctx.strokeRect(-w / 2, -h / 2, w, h);
 

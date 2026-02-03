@@ -102,7 +102,7 @@
             "min_damage": 10,
             "damage_falloff_curve": "linear",
             "chain_delay": 0.1,
-            "screen_shake_intensity": 0.6,
+            "screen_shake_intensity": 0.3,
             "visual_duration": 0.25
         },
         "detached": {
@@ -180,11 +180,36 @@
     "shop": {
         "options_per_wave": 3,
         "upgrades": [
-            { "type": "damage", "name": "Raw Power", "description": "+2 Damage", "cost": 25 },
-            { "type": "firerate", "name": "Rapid Fire", "description": "Faster Shoots", "cost": 40 },
-            { "type": "multishot", "name": "Multishot", "description": "+1 Bullet/Shot", "cost": 60 },
-            { "type": "health", "name": "Vitality", "description": "+50 Max HP", "cost": 30 },
-            { "type": "stamina", "name": "Endurance", "description": "+60 Max Stamina", "cost": 25 }
+            {
+                "type": "damage",
+                "name": "Raw Power",
+                "description": "+2 Damage",
+                "cost": 25
+            },
+            {
+                "type": "firerate",
+                "name": "Rapid Fire",
+                "description": "Faster Shoots",
+                "cost": 40
+            },
+            {
+                "type": "multishot",
+                "name": "Multishot",
+                "description": "+1 Bullet/Shot",
+                "cost": 60
+            },
+            {
+                "type": "health",
+                "name": "Vitality",
+                "description": "+50 Max HP",
+                "cost": 30
+            },
+            {
+                "type": "stamina",
+                "name": "Endurance",
+                "description": "+60 Max Stamina",
+                "cost": 25
+            }
         ]
     },
     "arena": {
@@ -202,6 +227,23 @@
             "pillar_chance": 0.5,
             "max_count": 300,
             "cleanup_distance": 80
+        },
+        "fuel_barrel": {
+            "radius": 1.2,
+            "hp": 1,
+            "spawn_chance": 0.15,
+            "explosion_radius": 8.5,
+            "fire_zone_duration": 4.0,
+            "fire_zone_radius": 5.0,
+            "color": "#E67E22"
+        },
+        "cryo_barrel": {
+            "radius": 1.1,
+            "hp": 1,
+            "spawn_chance": 0.08,
+            "freeze_radius": 7.0,
+            "freeze_duration": 4.0,
+            "color": "#3498DB"
         }
     },
     "safety_limits": {

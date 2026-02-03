@@ -34,15 +34,38 @@ export class Enemy extends Entity {
     }
 
     public angle: number = 0;
+    protected damageFlash: number = 0;
+    protected freezeTimer: number = 0;
+
+    public freeze(duration: number) {
+        this.freezeTimer = Math.max(this.freezeTimer, duration);
+    }
 
     public update(dt: number, game: Game): void {
         const config = ConfigManager.getConfig();
         const hero = game.hero;
 
+        if (this.damageFlash > 0) this.damageFlash -= dt;
+
         if (this.isFadingOut) {
             this.opacity -= dt * 0.8;
             if (this.opacity < 0) this.opacity = 0;
             return; // STOP AI (no movement, no attacking)
+        }
+
+        // Freeze Check
+        if (this.freezeTimer > 0) {
+            this.freezeTimer -= dt;
+            // When frozen, bomb still progresses but slowed? 
+            // Let's say bomb still works but enemy can't move.
+            if (this.bomb && this.bomb.parent === this) {
+                this.bomb.update(dt, game);
+                if (this.bomb && this.bomb.state === BombState.DETACHED) {
+                    game.bombs.push(this.bomb);
+                    this.bomb = null;
+                }
+            }
+            return;
         }
 
         if (!hero) return;
@@ -98,7 +121,14 @@ export class Enemy extends Entity {
         }
     }
 
+    public armBomb() {
+        if (this.bomb) {
+            this.bomb.arm();
+        }
+    }
+
     public takeDamage(amount: number) {
+        this.damageFlash = 0.1;
         // Shield absorbs damage first
         if (this.shield > 0) {
             this.shield -= amount;
@@ -126,54 +156,77 @@ export class Enemy extends Entity {
         ctx.globalAlpha = this.opacity;
         ctx.translate(this.x, this.y);
 
-        // Bloom Effect
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#FFD84D';
+        // Ground Shadow (Dynamic)
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+        ctx.beginPath();
+        const shadowScale = 1.0 + Math.sin(Date.now() * 0.005) * 0.1;
+        ctx.ellipse(0, this.radius * 0.8, this.radius * shadowScale, this.radius * 0.4 * shadowScale, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Bloom / Glow Effect
+        const pulse = (Math.sin(Date.now() * 0.01) + 1) / 2;
+        ctx.shadowBlur = 8 + pulse * 10;
+
+        if (this.damageFlash > 0) {
+            ctx.shadowColor = '#FFF';
+        } else if (this.freezeTimer > 0) {
+            ctx.shadowColor = '#3498DB';
+            ctx.shadowBlur = 15;
+        } else {
+            ctx.shadowColor = '#FFD84D';
+        }
 
         // Draw Shield Aura if active
-        // VISUAL SPEC: Radius 1.6, Color #4DFFF3, Opacity 70%
         if (this.shield > 0) {
             ctx.save();
             ctx.strokeStyle = '#4DFFF3';
-            ctx.globalAlpha = 0.7 * this.opacity; // Multiply by entity opacity
-            ctx.lineWidth = 0.05;
+            ctx.globalAlpha = (0.5 + pulse * 0.3) * this.opacity;
+            ctx.lineWidth = 0.08;
             ctx.beginPath();
-            ctx.arc(0, 0, 1.6, 0, Math.PI * 2);
+            ctx.arc(0, 0, 1.4 + pulse * 0.2, 0, Math.PI * 2);
             ctx.stroke();
+
+            // Subtle fill
+            ctx.fillStyle = 'rgba(77, 255, 243, 0.05)';
+            ctx.fill();
             ctx.restore();
         }
 
         ctx.rotate(this.angle);
 
-        // VISUAL SPEC: Armed State -> Slight shake (+/- 2 deg)
-        if (this.bomb && this.bomb.state === BombState.ARMED) {
-            const shake = (Math.random() - 0.5) * (4 * Math.PI / 180);
-            ctx.rotate(shake);
+        // Armed State -> Jitter & Brightness
+        if (this.bomb && (this.bomb.state === BombState.ARMED || this.bomb.state === BombState.DETACHED)) {
+            const jitter = (Math.random() - 0.5) * (6 * Math.PI / 180);
+            if (this.freezeTimer <= 0) ctx.rotate(jitter); // Don't jitter if frozen
+            ctx.shadowColor = this.freezeTimer > 0 ? '#3498DB' : '#FF3B3B';
+            ctx.shadowBlur = 15 + Math.random() * 10;
         }
 
-        // Draw Triangle
-        // VISUAL SPEC: Base width 1.2, Height 1.4
-        // Always points towards hero
-        ctx.fillStyle = '#FFD84D';
+        // Draw Shape
+        if (this.damageFlash > 0) {
+            ctx.fillStyle = '#FFF';
+        } else if (this.freezeTimer > 0) {
+            ctx.fillStyle = '#AED6F1'; // Light blue ice
+        } else {
+            ctx.fillStyle = '#FFD84D';
+        }
         ctx.beginPath();
-        // Height is along the facing axis (X when rotated)
-        // Base width is across (Y when rotated)
         const h = 1.4;
         const b = 1.2;
-        ctx.moveTo(h / 2, 0);          // Point
-        ctx.lineTo(-h / 2, b / 2);       // Bottom Left
-        ctx.lineTo(-h / 2, -b / 2);      // Bottom Right
+        ctx.moveTo(h / 2, 0);
+        ctx.lineTo(-h / 2, b / 2);
+        ctx.lineTo(-h / 2, -b / 2);
         ctx.closePath();
         ctx.fill();
 
-        // Outline
-        ctx.strokeStyle = '#8A6A00';
-        ctx.lineWidth = 0.05;
+        // High-Quality Outline
+        ctx.strokeStyle = this.damageFlash > 0 ? '#FFF' : 'rgba(138, 106, 0, 0.8)';
+        ctx.lineWidth = 0.06;
         ctx.stroke();
 
         ctx.restore();
 
-        // Draw Attached Bomb (on top)
+        // Draw Attached Bomb
         if (this.bomb && this.bomb.parent === this) {
             this.bomb.draw(ctx);
         }

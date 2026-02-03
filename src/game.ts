@@ -9,6 +9,9 @@ import { InputManager } from './input';
 import { Coin } from './entities/Coin';
 import { AudioManager } from './audio/AudioManager';
 import { Obstacle, ObstacleType } from './entities/Obstacle';
+import { FuelBarrel } from './entities/FuelBarrel';
+import { FireZone } from './entities/FireZone';
+import { CryoBarrel } from './entities/CryoBarrel';
 
 export interface UpgradeOption {
     type: 'damage' | 'firerate' | 'multishot' | 'health' | 'stamina';
@@ -28,6 +31,9 @@ export class Game {
     public bullets: Bullet[] = [];
     public coins: Coin[] = [];
     public obstacles: Obstacle[] = [];
+    public fuelBarrels: FuelBarrel[] = [];
+    public fireZones: FireZone[] = [];
+    public cryoBarrels: CryoBarrel[] = [];
     private generatedChunks: Set<string> = new Set();
 
     public score: number = 0;
@@ -102,9 +108,69 @@ export class Game {
                 }
             }
             if (overlap) continue;
-
             const type = Math.random() > obstacleConfig.pillar_chance ? ObstacleType.ROCK : ObstacleType.PILLAR;
             this.obstacles.push(new Obstacle(rx, ry, type, radius));
+        }
+
+        // Independent Fuel Barrel Spawning
+        const barrelCount = Math.floor(chunkSize * chunkSize * 0.008); // Fewer attempts per chunk
+        for (let i = 0; i < barrelCount; i++) {
+            const fbx = cx * chunkSize + Math.random() * chunkSize;
+            const fby = cy * chunkSize + Math.random() * chunkSize;
+
+            if (Math.abs(fbx) < config.arena.safe_radius && Math.abs(fby) < config.arena.safe_radius) continue;
+
+            if (Math.random() < config.arena.fuel_barrel.spawn_chance) {
+                let overlap = false;
+                const fbRadius = config.arena.fuel_barrel.radius;
+
+                // Check overlap with obstacles
+                for (const obs of this.obstacles) {
+                    const dx = obs.x - fbx;
+                    const dy = obs.y - fby;
+                    if (dx * dx + dy * dy < Math.pow(fbRadius + obs.radius + 0.5, 2)) {
+                        overlap = true;
+                        break;
+                    }
+                }
+
+                // Check overlap with other barrels in this chunk (simplified check against existing ones)
+                if (!overlap) {
+                    for (const fb of this.fuelBarrels) {
+                        const dx = fb.x - fbx;
+                        const dy = fb.y - fby;
+                        if (dx * dx + dy * dy < Math.pow(fbRadius * 2 + 1, 2)) {
+                            overlap = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!overlap) {
+                    this.fuelBarrels.push(new FuelBarrel(fbx, fby));
+                }
+            }
+        }
+
+        // Independent Cryo Barrel Spawning
+        if (Math.random() < config.arena.cryo_barrel.spawn_chance) {
+            const cbx = cx * chunkSize + Math.random() * chunkSize;
+            const cby = cy * chunkSize + Math.random() * chunkSize;
+            if (Math.abs(cbx) > config.arena.safe_radius || Math.abs(cby) > config.arena.safe_radius) {
+                let overlap = false;
+                const cbRadius = config.arena.cryo_barrel.radius;
+                for (const obs of this.obstacles) {
+                    const dx = obs.x - cbx;
+                    const dy = obs.y - cby;
+                    if (dx * dx + dy * dy < Math.pow(cbRadius + obs.radius + 0.5, 2)) {
+                        overlap = true;
+                        break;
+                    }
+                }
+                if (!overlap) {
+                    this.cryoBarrels.push(new CryoBarrel(cbx, cby));
+                }
+            }
         }
     }
 
@@ -220,6 +286,9 @@ export class Game {
         this.bullets = [];
         this.coins = [];
         this.obstacles = [];
+        this.fuelBarrels = [];
+        this.cryoBarrels = [];
+        this.fireZones = [];
         this.generatedChunks.clear();
         this.score = 0;
         this.coinCount = 0;
@@ -441,7 +510,46 @@ export class Game {
         for (let i = this.bullets.length - 1; i >= 0; i--) {
             const bullet = this.bullets[i];
             bullet.update(dt, this);
+
+            // Fuel Barrel Collision
+            for (const barrel of this.fuelBarrels) {
+                if (bullet.distanceTo(barrel) < bullet.radius + barrel.radius) {
+                    barrel.takeDamage(bullet.damage, this);
+                    bullet.isDead = true;
+                    break;
+                }
+            }
+
+            // Cryo Barrel Collision
+            if (!bullet.isDead) {
+                for (const barrel of this.cryoBarrels) {
+                    if (bullet.distanceTo(barrel) < bullet.radius + barrel.radius) {
+                        barrel.takeDamage(bullet.damage, this);
+                        bullet.isDead = true;
+                        break;
+                    }
+                }
+            }
+
             if (bullet.isDead) this.bullets.splice(i, 1);
+        }
+
+        for (let i = this.fuelBarrels.length - 1; i >= 0; i--) {
+            const barrel = this.fuelBarrels[i];
+            barrel.update(dt, this);
+            if (barrel.isDead) this.fuelBarrels.splice(i, 1);
+        }
+
+        for (let i = this.cryoBarrels.length - 1; i >= 0; i--) {
+            const barrel = this.cryoBarrels[i];
+            barrel.update(dt, this);
+            if (barrel.isDead) this.cryoBarrels.splice(i, 1);
+        }
+
+        for (let i = this.fireZones.length - 1; i >= 0; i--) {
+            const zone = this.fireZones[i];
+            zone.update(dt, this);
+            if (zone.isDead) this.fireZones.splice(i, 1);
         }
 
         for (let i = this.coins.length - 1; i >= 0; i--) {
@@ -464,13 +572,30 @@ export class Game {
                 if (dx * dx + dy * dy > config.arena.obstacle.cleanup_distance * config.arena.obstacle.cleanup_distance) this.obstacles.splice(i, 1);
             }
         }
+
+        // Cleanup Fuel Barrels too
+        if (this.fuelBarrels.length > 200) {
+            for (let i = this.fuelBarrels.length - 1; i >= 0; i--) {
+                const fb = this.fuelBarrels[i];
+                const dx = fb.x - this.hero.x;
+                const dy = fb.y - this.hero.y;
+                if (dx * dx + dy * dy > 100 * 100) this.fuelBarrels.splice(i, 1);
+            }
+        }
     }
 
     public generateUpgradeOptions() {
         const config = ConfigManager.getConfig();
         const pool: UpgradeOption[] = config.shop.upgrades as UpgradeOption[];
         const shuffled = [...pool].sort(() => 0.5 - Math.random());
-        this.currentShopOptions = shuffled.slice(0, config.shop.options_per_wave);
+
+        // Scale price based on wave: starts at 50% for wave 1, increases by 30% each wave
+        const priceFactor = 0.2 + (this.waveManager.currentWave * 0.3);
+
+        this.currentShopOptions = shuffled.slice(0, config.shop.options_per_wave).map(opt => ({
+            ...opt,
+            cost: Math.floor(opt.cost * priceFactor)
+        }));
     }
 
     public getEntities() {
@@ -480,7 +605,10 @@ export class Game {
             bombs: this.bombs,
             bullets: this.bullets,
             coins: this.coins,
-            obstacles: this.obstacles
+            obstacles: this.obstacles,
+            fuelBarrels: this.fuelBarrels,
+            cryoBarrels: this.cryoBarrels,
+            fireZones: this.fireZones
         };
     }
 }

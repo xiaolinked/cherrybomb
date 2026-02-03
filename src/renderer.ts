@@ -11,6 +11,9 @@ export class Renderer {
     private shakeTimer: number = 0;
     private shakeIntensity: number = 0;
 
+    // Background Stars (Deterministic based on coords)
+    private stars: { x: number, y: number, r: number, alpha: number }[] = [];
+
     constructor(canvas: HTMLCanvasElement) {
         this.ctx = canvas.getContext('2d')!;
         this.width = canvas.width = window.innerWidth;
@@ -20,6 +23,16 @@ export class Renderer {
             this.width = canvas.width = window.innerWidth;
             this.height = canvas.height = window.innerHeight;
         });
+
+        // Pre-generate some star data for parallax chunks
+        for (let i = 0; i < 200; i++) {
+            this.stars.push({
+                x: Math.random() * 2000,
+                y: Math.random() * 2000,
+                r: 0.2 + Math.random() * 0.8,
+                alpha: 0.3 + Math.random() * 0.7
+            });
+        }
     }
 
     public render(game: Game) {
@@ -31,13 +44,24 @@ export class Renderer {
             this.shakeTimer -= dt;
         }
 
-        // Clear screen (Deep Space Blue)
-        this.ctx.fillStyle = '#0a0a12';
+        // --- NEW PREMIUM BACKGROUND (Cyberpunk Inferno) ---
+        // 0. Base Nebula Gradient
+        const bgGrad = this.ctx.createRadialGradient(
+            this.width / 2, this.height / 2, 0,
+            this.width / 2, this.height / 2, this.width
+        );
+        bgGrad.addColorStop(0, '#1a0505'); // Deep Maroon
+        bgGrad.addColorStop(0.6, '#080202'); // Near Black
+        bgGrad.addColorStop(1, '#000'); // Pure Black
+        this.ctx.fillStyle = bgGrad;
         this.ctx.fillRect(0, 0, this.width, this.height);
 
         // Center camera on Hero if exists
         const cameraX = entities.hero ? entities.hero.x : 0;
         const cameraY = entities.hero ? entities.hero.y : 0;
+
+        // 0.5. Parallax Starfield
+        this.drawParallaxStars(cameraX, cameraY);
 
         // Sync InputManager with camera
         const input = InputManager.getInstance();
@@ -67,6 +91,12 @@ export class Renderer {
         // Draw Infinite Grid
         this.drawInfiniteGrid(cameraX, cameraY);
 
+        // Draw Fire Zones (Ground Layer)
+        if (entities.fireZones) {
+            for (const zone of entities.fireZones) {
+                zone.draw(this.ctx);
+            }
+        }
 
         // Draw Obstacles
         if (game.obstacles) {
@@ -80,18 +110,30 @@ export class Renderer {
             enemy.draw(this.ctx);
         }
 
+        if (entities.coins) {
+            for (const coin of entities.coins) {
+                coin.draw(this.ctx);
+            }
+        }
+
+        if (entities.fuelBarrels) {
+            for (const barrel of entities.fuelBarrels) {
+                barrel.draw(this.ctx);
+            }
+        }
+
+        if (entities.cryoBarrels) {
+            for (const barrel of entities.cryoBarrels) {
+                barrel.draw(this.ctx);
+            }
+        }
+
         for (const bomb of entities.bombs) {
             bomb.draw(this.ctx);
         }
 
         for (const bullet of entities.bullets) {
             bullet.draw(this.ctx);
-        }
-
-        if (entities.coins) {
-            for (const coin of entities.coins) {
-                coin.draw(this.ctx);
-            }
         }
 
         if (entities.hero) {
@@ -128,6 +170,16 @@ export class Renderer {
             this.drawEnemyIndex();
         }
 
+        // --- VIGNETTE ---
+        const vignette = this.ctx.createRadialGradient(
+            this.width / 2, this.height / 2, this.height * 0.4,
+            this.width / 2, this.height / 2, this.width * 0.7
+        );
+        vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        vignette.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
+        this.ctx.fillStyle = vignette;
+        this.ctx.fillRect(0, 0, this.width, this.height);
+
         this.drawScanlines();
     }
 
@@ -145,10 +197,8 @@ export class Renderer {
         const endY = Math.ceil((cameraY + halfHeight) / gridSize) * gridSize;
 
         ctx.save();
-        ctx.strokeStyle = '#1a1a2e'; // Faint Neon Blue
-        ctx.lineWidth = 0.05;
-        ctx.shadowBlur = 5;
-        ctx.shadowColor = '#0000FF'; // Blue Glow
+        ctx.strokeStyle = 'rgba(255, 60, 0, 0.05)'; // Darker Red-Orange Grid
+        ctx.lineWidth = 0.02;
 
         ctx.beginPath();
         for (let x = startX; x <= endX; x += gridSize) {
@@ -160,6 +210,64 @@ export class Renderer {
             ctx.lineTo(endX, y);
         }
         ctx.stroke();
+
+        // Glowing Magma Nodes (Angular/Structured)
+        for (let x = startX; x <= endX; x += gridSize) {
+            for (let y = startY; y <= endY; y += gridSize) {
+                const seed = Math.sin(x * 1.5) + Math.cos(y * 1.1);
+                if (seed > 0.85) {
+                    const glow = (Math.sin(Date.now() * 0.002 + x) + 1) / 2;
+                    ctx.fillStyle = `rgba(255, 80, 0, ${0.05 + glow * 0.1})`;
+                    // Square "node" instead of circle
+                    ctx.fillRect(x - 0.2, y - 0.2, 0.4, 0.4);
+
+                    ctx.fillStyle = `rgba(255, 200, 0, ${0.2 + glow * 0.4})`;
+                    ctx.fillRect(x - 0.025, y - 0.025, 0.05, 0.05);
+                }
+            }
+        }
+        ctx.restore();
+    }
+
+    private drawParallaxStars(camX: number, camY: number) {
+        const ctx = this.ctx;
+        ctx.save();
+        // Translate for parallax layers
+        const layers = [
+            { speed: 0.1, color: '#FF4E00', size: 1.0 }, // Orange Embers
+            { speed: 0.3, color: '#FF8C00', size: 1.5 },
+            { speed: 0.5, color: '#8B0000', size: 0.8 }
+        ];
+
+        layers.forEach((layer, lIdx) => {
+            ctx.fillStyle = layer.color;
+            ctx.globalAlpha = 0.5;
+
+            // Loop through pre-gen stars and offset by camera * layer speed
+            this.stars.forEach((star, sIdx) => {
+                if (sIdx % layers.length !== lIdx) return;
+
+                // Drift + Heat Haze Wave
+                const drift = Date.now() * 0.001 * layer.speed;
+                const wave = Math.sin(Date.now() * 0.002 + star.x) * 10;
+
+                let sx = (star.x - camX * layer.speed * 20 + drift * 50) % this.width;
+                let sy = (star.y - camY * layer.speed * 20 + wave) % this.height;
+                if (sx < 0) sx += this.width;
+                if (sy < 0) sy += this.height;
+
+                // Draw digital dash instead of circle
+                const dashLen = star.r * layer.size * 6;
+                ctx.fillRect(sx, sy, 1, dashLen);
+
+                // Ember glow (Linear)
+                if (layer.speed > 0.3) {
+                    ctx.shadowBlur = 4;
+                    ctx.shadowColor = layer.color;
+                    ctx.fillRect(sx, sy, 1, dashLen);
+                }
+            });
+        });
         ctx.restore();
     }
 
@@ -218,13 +326,29 @@ export class Renderer {
             }
         }
 
-        ctx.font = 'bold 24px monospace';
+        // 0. Top Left HUD Plate
+        ctx.save();
         ctx.textAlign = 'left';
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.beginPath();
+        ctx.roundRect(10, 10, 220, 80, 10);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 123, 0, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.font = 'bold 18px monospace';
         ctx.fillStyle = '#FFF';
-        ctx.fillText(`SCORE: ${game.score}`, 20, 40);
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = '#FF4E00';
+        ctx.fillText(`SCORE: ${game.score.toLocaleString()}`, 25, 40);
 
         ctx.fillStyle = '#FFD700';
-        ctx.fillText(`COINS: ${game.coinCount}`, 20, 70);
+        ctx.shadowColor = '#FFD700';
+        ctx.fillText(`COINS: ${game.coinCount}`, 25, 70);
+        ctx.shadowBlur = 0;
+        ctx.restore();
 
         ctx.textAlign = 'center';
         ctx.font = 'bold 30px monospace';
@@ -239,21 +363,26 @@ export class Renderer {
             ctx.fillText(`WAVE ${waveMgr.currentWave}`, centerX, 70);
         }
         else if (waveMgr.isWaveComplete) {
-            ctx.fillStyle = '#4DFFF3';
-            ctx.font = 'bold 60px monospace';
-            ctx.shadowColor = '#4DFFF3';
-            ctx.shadowBlur = 20;
-            ctx.fillText("WAVE COMPLETE", centerX, height / 2);
+            ctx.fillStyle = '#FF7B00';
+            ctx.font = 'bold 70px monospace';
+            ctx.shadowColor = '#FF4E00';
+            ctx.shadowBlur = 25;
+            ctx.fillText("WAVE DEFEATED", centerX, height / 2);
+            ctx.font = 'bold 24px monospace';
+            ctx.fillText("COLLECTING REMNANTS...", centerX, height / 2 + 60);
             ctx.shadowBlur = 0;
         }
         else if (waveMgr.isCountdown) {
-            ctx.fillStyle = '#FFFF00';
-            ctx.font = 'bold 60px monospace';
-            ctx.fillText(waveMgr.stateTimer.toFixed(1), centerX, 100);
+            ctx.fillStyle = '#FF4E00';
+            ctx.font = 'bold 100px monospace';
+            ctx.shadowColor = '#FF0000';
+            ctx.shadowBlur = 30;
+            ctx.fillText(Math.ceil(waveMgr.stateTimer).toString(), centerX, height / 2);
 
-            ctx.font = '30px sans-serif';
+            ctx.font = 'bold 30px monospace';
             ctx.fillStyle = '#FFF';
-            ctx.fillText("GET READY!", centerX, 40);
+            ctx.shadowBlur = 0;
+            ctx.fillText("INITIATING WAVE INBOUND", centerX, height / 2 - 100);
         }
         else if (waveMgr.isReady) {
             ctx.fillStyle = '#FF0000';
@@ -292,51 +421,119 @@ export class Renderer {
         }
 
         if (waveMgr.isShopOpen) {
-            ctx.fillStyle = '#FFFF00';
-            ctx.fillText("SHOP OPEN", centerX, 40);
+            // Darken background more for focus
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.fillRect(0, 0, width, height);
 
-            this.drawButton(centerX, 85, 220, 45, "NEXT WAVE", "#FFFF00");
+            // 1. Shop Header
+            const pulse = (Math.sin(Date.now() * 0.003) + 1) / 2;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
 
-            const startY = 150;
-            const cardWidth = 200;
-            const cardHeight = 120;
-            const spacing = 20;
+            // Decorative lines around title
+            ctx.strokeStyle = '#FF4E00';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(centerX - 220, 50);
+            ctx.lineTo(centerX - 120, 50);
+            ctx.moveTo(centerX + 120, 50);
+            ctx.lineTo(centerX + 220, 50);
+            ctx.stroke();
+
+            ctx.fillStyle = '#FF7B00';
+            ctx.shadowBlur = 10 + pulse * 10;
+            ctx.shadowColor = '#FF4E00';
+            ctx.font = 'bold 36px monospace';
+            ctx.fillText("THERMAL REPOSITORY", centerX, 50);
+            ctx.shadowBlur = 0;
+
+            this.drawButton(centerX, 110, 240, 45, "DEPLOY TO NEXT WAVE", "#FF4E00");
+
+            // 2. Upgrade Cards
+            const cardWidth = 260;
+            const cardHeight = 360;
+            const spacing = 40;
             const totalWidth = (cardWidth * 3) + (spacing * 2);
             const startX = centerX - totalWidth / 2;
+            const cardY = 180;
 
             for (let i = 0; i < 3; i++) {
                 const opt = game.currentShopOptions[i];
                 if (!opt) continue;
 
                 const x = startX + i * (cardWidth + spacing);
-                const y = startY;
+                const y = cardY;
 
                 const input = InputManager.getInstance();
                 const mx = input.mouse.x;
                 const my = input.mouse.y;
                 const isHovered = mx >= x && mx <= x + cardWidth && my >= y && my <= y + cardHeight;
 
-                ctx.fillStyle = isHovered ? 'rgba(50, 50, 50, 0.95)' : 'rgba(30, 30, 30, 0.9)';
-                ctx.strokeStyle = isHovered ? '#FFFFFF' : '#FFFF00';
-                ctx.lineWidth = isHovered ? 4 : 2;
-                ctx.fillRect(x, y, cardWidth, cardHeight);
-                ctx.strokeRect(x, y, cardWidth, cardHeight);
+                // Card lift effect
+                const hoverOffset = isHovered ? -10 : 0;
 
-                ctx.fillStyle = '#FFFF00';
-                ctx.font = 'bold 18px monospace';
-                ctx.fillText(`[${i + 1}]`, x + cardWidth / 2, y + 25);
+                ctx.save();
+                ctx.translate(0, hoverOffset);
 
+                // Card Glow/Shadow
+                ctx.shadowBlur = isHovered ? 30 : 15;
+                ctx.shadowColor = isHovered ? 'rgba(255, 78, 0, 0.4)' : 'rgba(0, 0, 0, 0.5)';
+
+                // Card Base (Glassmorphism)
+                const cardGrad = ctx.createLinearGradient(x, y, x, y + cardHeight);
+                cardGrad.addColorStop(0, 'rgba(40, 40, 45, 0.95)');
+                cardGrad.addColorStop(1, 'rgba(20, 20, 25, 0.98)');
+
+                ctx.fillStyle = cardGrad;
+                ctx.beginPath();
+                ctx.roundRect(x, y, cardWidth, cardHeight, 15);
+                ctx.fill();
+
+                // Card Border
+                ctx.strokeStyle = isHovered ? '#FF7B00' : 'rgba(255, 255, 255, 0.1)';
+                ctx.lineWidth = isHovered ? 3 : 1;
+                ctx.stroke();
+
+                // 3. Upgrade Icon (Simplified Vector)
+                ctx.save();
+                ctx.translate(x + cardWidth / 2, y + 80);
+                this.drawUpgradeIcon(ctx, opt.type, isHovered);
+                ctx.restore();
+
+                // 4. Content
+                ctx.textAlign = 'center';
+
+                // Index Label [1]
+                ctx.fillStyle = isHovered ? '#FF7B00' : '#AAA';
+                ctx.font = 'bold 14px monospace';
+                ctx.fillText(`UPGRADE NODE ID-0${i + 1}`, x + cardWidth / 2, y + 160);
+
+                // Name
                 ctx.fillStyle = '#FFF';
-                ctx.font = 'bold 16px sans-serif';
-                ctx.fillText(opt.name, x + cardWidth / 2, y + 50);
+                ctx.font = 'bold 24px sans-serif';
+                ctx.fillText(opt.name.toUpperCase(), x + cardWidth / 2, y + 200);
 
-                ctx.font = '14px sans-serif';
-                ctx.fillStyle = '#AAA';
-                ctx.fillText(opt.description, x + cardWidth / 2, y + 75);
+                // Description
+                ctx.font = '16px sans-serif';
+                ctx.fillStyle = '#BBB';
+                const descLines = opt.description.split('\n');
+                descLines.forEach((line, li) => {
+                    ctx.fillText(line, x + cardWidth / 2, y + 235 + li * 20);
+                });
 
-                ctx.font = 'bold 16px monospace';
-                ctx.fillStyle = game.coinCount >= opt.cost ? '#00FF00' : '#FF0000';
-                ctx.fillText(`$${opt.cost} `, x + cardWidth / 2, y + 105);
+                // Cost Section
+                const afford = game.coinCount >= opt.cost;
+                const costY = y + cardHeight - 50;
+
+                // Cost bar
+                ctx.fillStyle = afford ? 'rgba(0, 255, 100, 0.1)' : 'rgba(255, 0, 0, 0.1)';
+                ctx.fillRect(x + 20, costY - 25, cardWidth - 40, 50);
+
+                ctx.font = 'bold 22px monospace';
+                ctx.fillStyle = afford ? '#00FF88' : '#FF4444';
+                ctx.fillText(`CRD: ${opt.cost}`, x + cardWidth / 2, costY + 8);
+
+                ctx.restore();
             }
         }
 
@@ -558,13 +755,32 @@ export class Renderer {
         const isHover = input.mouse.x >= x - w / 2 && input.mouse.x <= x + w / 2 &&
             input.mouse.y >= y - h / 2 && input.mouse.y <= y + h / 2;
 
-        ctx.fillStyle = isHover ? color : 'rgba(0, 0, 0, 0.5)';
+        // Button Body
+        ctx.shadowBlur = isHover ? 15 : 5;
+        ctx.shadowColor = color;
+
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        if (isHover) {
+            grad.addColorStop(0, color);
+            grad.addColorStop(1, '#FFF');
+        } else {
+            grad.addColorStop(0, 'rgba(0,0,0,0.8)');
+            grad.addColorStop(1, 'rgba(30,30,30,0.9)');
+        }
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.roundRect(0, 0, w, h, 8);
+        ctx.fill();
+
+        // Border
         ctx.strokeStyle = color;
-        ctx.lineWidth = 3;
-        ctx.fillRect(0, 0, w, h);
-        ctx.strokeRect(0, 0, w, h);
-        ctx.fillStyle = isHover ? '#000' : color;
-        ctx.font = 'bold 24px sans-serif';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Label
+        ctx.fillStyle = isHover ? '#000' : '#FFF';
+        ctx.font = 'bold 18px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(text, w / 2, h / 2);
@@ -743,6 +959,62 @@ export class Renderer {
         // Close Button
         this.drawButton(w - 100, h - 50, 160, 50, "CLOSE", "#FF5555");
 
+        ctx.restore();
+    }
+
+    private drawUpgradeIcon(ctx: CanvasRenderingContext2D, type: string, isHovered: boolean) {
+        ctx.save();
+        const pulse = (Math.sin(Date.now() * 0.008) + 1) / 2;
+        const scale = isHovered ? 1.0 + pulse * 0.1 : 1.0;
+        ctx.scale(scale, scale);
+
+        ctx.strokeStyle = isHovered ? '#FF7B00' : '#FFF';
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = isHovered ? 15 + pulse * 10 : 0;
+        ctx.shadowColor = '#FF7B00';
+
+
+        switch (type) {
+            case 'damage':
+                // Crosshair / Burst
+                ctx.beginPath();
+                ctx.arc(0, 0, 20, 0, Math.PI * 2);
+                ctx.moveTo(-30, 0); ctx.lineTo(30, 0);
+                ctx.moveTo(0, -30); ctx.lineTo(0, 30);
+                ctx.stroke();
+                break;
+            case 'firerate':
+                // Bullets / Lightning
+                ctx.beginPath();
+                ctx.moveTo(-15, -20); ctx.lineTo(15, 0); ctx.lineTo(-15, 20);
+                ctx.lineTo(0, 0); ctx.closePath();
+                ctx.stroke();
+                break;
+            case 'multishot':
+                // Shards / Multiple lines
+                ctx.beginPath();
+                ctx.moveTo(0, 0); ctx.lineTo(-20, -25);
+                ctx.moveTo(0, 0); ctx.lineTo(0, -30);
+                ctx.moveTo(0, 0); ctx.lineTo(20, -25);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(0, 0, 5, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+            case 'health':
+                // Plus sign
+                ctx.beginPath();
+                ctx.moveTo(-20, 0); ctx.lineTo(20, 0);
+                ctx.moveTo(0, -20); ctx.lineTo(0, 20);
+                ctx.stroke();
+                break;
+            case 'stamina':
+                // Bolt / Wing
+                ctx.beginPath();
+                ctx.moveTo(10, -25); ctx.lineTo(-15, 5); ctx.lineTo(5, 5); ctx.lineTo(-10, 25);
+                ctx.stroke();
+                break;
+        }
         ctx.restore();
     }
 

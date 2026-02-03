@@ -188,6 +188,22 @@ export class Bomb extends Entity {
             }
         }
 
+        // 3. Fuel Barrels (Chain Reaction)
+        for (const barrel of game.fuelBarrels) {
+            const dist = this.distanceTo(barrel);
+            if (dist < this.radiusExplosion) {
+                barrel.takeDamage(999, game); // Explode barrels immediately
+            }
+        }
+
+        // 4. Detached Bombs (Chain Reaction)
+        for (const otherBomb of game.bombs) {
+            if (otherBomb === this || otherBomb.state === BombState.DEAD || otherBomb.state === BombState.EXPLODING) continue;
+            if (this.distanceTo(otherBomb) < this.radiusExplosion) {
+                otherBomb.timer = Math.min(otherBomb.timer, 0.1); // Detonate almost instantly
+            }
+        }
+
         // 3. Other Bombs? (Chain)
         // We'll handle this global finding in Game or just iterate existing bombs
 
@@ -205,27 +221,45 @@ export class Bomb extends Entity {
         ctx.translate(this.x, this.y);
 
         if (this.state === BombState.EXPLODING) {
-            // VISUAL SPEC: Expanding circle, Duration 0.25s
-            // Gradient Center: #FFF2A8, Mid: #FF9933, Edge: #FF3B3B
             const progress = 1.0 - (this.explosionTimer / this.explosionDuration);
-            const currentRadius = this.radiusExplosion * Math.pow(progress, 0.5);
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            const currentRadius = this.radiusExplosion * easeOut;
 
-            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, currentRadius);
-            grad.addColorStop(0, '#FFF2A8');
-            grad.addColorStop(0.5, '#FF9933');
-            grad.addColorStop(1, '#FF3B3B');
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
 
-            ctx.fillStyle = grad;
+            // 1. Central Core (Bright White/Yellow)
+            const coreRadius = currentRadius * 0.4;
+            const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRadius);
+            coreGrad.addColorStop(0, '#FFFFFF');
+            coreGrad.addColorStop(0.7, '#FFF2A8');
+            coreGrad.addColorStop(1, 'rgba(255, 242, 168, 0)');
+            ctx.fillStyle = coreGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, coreRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 2. Main Blast (Orange/Red)
+            const blastGrad = ctx.createRadialGradient(0, 0, currentRadius * 0.2, 0, 0, currentRadius);
+            blastGrad.addColorStop(0, '#FFD84D');
+            blastGrad.addColorStop(0.4, '#FF9933');
+            blastGrad.addColorStop(0.8, '#FF3B3B');
+            blastGrad.addColorStop(1, 'rgba(255, 59, 59, 0)');
+
+            ctx.fillStyle = blastGrad;
             ctx.globalAlpha = 1.0 - progress;
             ctx.beginPath();
             ctx.arc(0, 0, currentRadius, 0, Math.PI * 2);
             ctx.fill();
 
-            // Ring outline at max radius
-            ctx.strokeStyle = '#FF3B3B';
-            ctx.lineWidth = 0.05;
+            // 3. Shockwave Ring
+            ctx.strokeStyle = `rgba(255, 255, 255, ${(1.0 - progress) * 0.5})`;
+            ctx.lineWidth = 0.1 * (1.0 - progress);
+            ctx.beginPath();
+            ctx.arc(0, 0, currentRadius * 1.1, 0, Math.PI * 2);
             ctx.stroke();
 
+            ctx.restore();
             ctx.restore();
             return;
         }

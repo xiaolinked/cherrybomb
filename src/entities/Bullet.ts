@@ -4,7 +4,7 @@ import { ConfigManager } from "../config";
 
 export class Bullet extends Entity {
     private velocity: { x: number, y: number };
-    private damage: number;
+    public damage: number;
     private maxLifetime: number; // Range / Speed
     private lifetime: number = 0;
 
