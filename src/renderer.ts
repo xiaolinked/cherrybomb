@@ -286,10 +286,12 @@ export class Renderer {
         }
 
         // Pause Button (HUD)
-        if (!game.hero.isDead && !waveMgr.isReady && !waveMgr.isIndexOpen) {
+        // Pause Button (HUD)
+        if (!game.hero.isDead && !waveMgr.isReady && !waveMgr.isIndexOpen && !waveMgr.isShopOpen) {
             this.drawButton(width - 60, 40, 80, 40, "PAUSE", "#FFFFFF");
         }
-        else if (waveMgr.isShopOpen) {
+
+        if (waveMgr.isShopOpen) {
             ctx.fillStyle = '#FFFF00';
             ctx.fillText("SHOP OPEN", centerX, 40);
 
