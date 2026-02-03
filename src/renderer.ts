@@ -353,23 +353,43 @@ export class Renderer {
             ctx.stroke();
 
             const ammoY = plateY + 25;
-            const ammoPct = game.hero.ammo / game.hero.maxAmmo;
+            const maxAmmo = game.hero.maxAmmo;
+            const currentAmmo = game.hero.ammo;
+            const totalWidth = 200;
+            const totalHeight = 10;
+            const startX = centerX - totalWidth / 2;
+
+            // Calculate block size
+            // We want: (width * count) + (gap * (count - 1)) = totalWidth
+            // width * count = totalWidth - gap * (count - 1)
+            // width = (totalWidth - gap * (count - 1)) / count
+            const gap = 4;
+            const blockWidth = (totalWidth - (gap * (maxAmmo - 1))) / maxAmmo;
+
             ctx.fillStyle = '#FFFF00';
             ctx.font = 'bold 12px monospace';
             ctx.fillText("AMMO", centerX, ammoY - 12);
-            ctx.fillStyle = '#333';
-            ctx.fillRect(centerX - 100, ammoY, 200, 10);
 
-            if (game.hero.reloadTimer > 0) {
-                const flash = Math.sin(performance.now() / 100) * 0.5 + 0.5;
-                ctx.fillStyle = `rgba(255, 255, 0, ${flash})`;
-                ctx.fillRect(centerX - 100, ammoY, 200, 10);
-            } else {
-                ctx.fillStyle = '#FFFF00';
-                ctx.fillRect(centerX - 100, ammoY, 200 * ammoPct, 10);
+            for (let i = 0; i < maxAmmo; i++) {
+                const x = startX + i * (blockWidth + gap);
+
+                if (game.hero.reloadTimer > 0) {
+                    const flash = Math.sin(performance.now() / 100) * 0.5 + 0.5;
+                    ctx.fillStyle = `rgba(255, 255, 0, ${flash})`;
+                } else {
+                    if (i < currentAmmo) {
+                        ctx.fillStyle = '#FFFF00';
+                    } else {
+                        ctx.fillStyle = '#333';
+                    }
+                }
+
+                ctx.fillRect(x, ammoY, blockWidth, totalHeight);
+                // Subtle border for each block
+                ctx.strokeStyle = '#444';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x, ammoY, blockWidth, totalHeight);
             }
-            ctx.strokeStyle = '#FFF';
-            ctx.strokeRect(centerX - 100, ammoY, 200, 10);
 
             const stamY = plateY + 55;
             const stamPct = game.hero.stamina / game.hero.maxStamina;
@@ -633,10 +653,14 @@ export class Renderer {
         ctx.fillStyle = '#FFF';
         ctx.font = 'bold 80px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText("PAUSED", this.width / 2, this.height / 2);
+        ctx.fillText("PAUSED", this.width / 2, this.height / 2 - 40);
 
-        ctx.font = '24px sans-serif';
-        ctx.fillText("Press P or ESC to Resume", this.width / 2, this.height / 2 + 60);
+        this.drawButton(this.width / 2, this.height / 2 + 60, 200, 60, "RESUME", "#00FF00");
+
+        ctx.font = '16px sans-serif';
+        ctx.fillStyle = '#AAA';
+        ctx.fillText("Press P or ESC to Resume", this.width / 2, this.height / 2 + 120);
+
         ctx.restore();
     }
 

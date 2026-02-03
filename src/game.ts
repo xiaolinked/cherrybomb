@@ -146,6 +146,8 @@ export class Game {
         this.lastTime = time;
 
         const input = InputManager.getInstance();
+        const clickHappened = input.isNewClick();
+
         if (this.pauseCooldown > 0) this.pauseCooldown -= dt;
 
         if ((input.keys['p'] || input.keys['escape']) && this.pauseCooldown <= 0) {
@@ -154,23 +156,34 @@ export class Game {
         }
 
         if (this.isPaused) {
-            if (input.isNewClick()) {
+            if (clickHappened) {
                 const mx = input.mouse.x;
                 const my = input.mouse.y;
                 const width = window.innerWidth;
+                const height = window.innerHeight;
+
+                // Top-right pause/unpause button
                 const isPauseBtn = Math.abs(mx - (width - 60)) < 40 && Math.abs(my - 40) < 20;
-                if (isPauseBtn) {
+
+                // Center Resume button
+                const cx = width / 2;
+                const cy = height / 2 + 60;
+                const isResumeBtn = Math.abs(mx - cx) < 100 && Math.abs(my - cy) < 30;
+
+                if (isPauseBtn || isResumeBtn) {
                     this.togglePause();
                     this.pauseCooldown = 0.3;
-                    return;
                 }
             }
-            this.renderer.render(this);
-            requestAnimationFrame((t) => this.update(t));
-            return;
+
+            if (this.isPaused) {
+                this.renderer.render(this);
+                requestAnimationFrame((t) => this.update(t));
+                return;
+            }
         }
 
-        if (input.isNewClick()) {
+        if (clickHappened) {
             const mx = input.mouse.x;
             const my = input.mouse.y;
             const width = window.innerWidth;
@@ -189,7 +202,7 @@ export class Game {
                 if (bomb.state === BombState.EXPLODING) bomb.update(dt, this);
             }
         } else {
-            this.gameUpdate(dt); // Renamed original update to gameUpdate to avoid conflict
+            this.gameUpdate(dt, clickHappened); // Renamed original update to gameUpdate to avoid conflict
         }
 
         if (this.deathHighlightTimer > 0) {
@@ -272,7 +285,7 @@ export class Game {
         }
     }
 
-    private gameUpdate(dt: number) {
+    private gameUpdate(dt: number, clickHappened: boolean) {
         this.updateProceduralGeneration();
         if (this.shopCooldown > 0) this.shopCooldown -= dt;
 
@@ -286,7 +299,7 @@ export class Game {
                 this.deathHighlightTimer = config.ui.death.highlight_duration;
             }
 
-            if (input.isNewClick()) {
+            if (clickHappened) {
                 const mx = input.mouse.x;
                 const my = input.mouse.y;
                 const cx = window.innerWidth / 2;
@@ -302,7 +315,6 @@ export class Game {
         }
 
         if (this.waveManager.isShopOpen || this.waveManager.isReady || this.waveManager.isIndexOpen) {
-            const clickHappened = input.isNewClick();
             const mx = input.mouse.x;
             const my = input.mouse.y;
             const cx = window.innerWidth / 2;
