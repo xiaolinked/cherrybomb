@@ -56,7 +56,7 @@ export class FuelBarrel extends Entity {
             const dx = enemy.x - this.x;
             const dy = enemy.y - this.y;
             if (Math.sqrt(dx * dx + dy * dy) < explosionRadius) {
-                enemy.armBomb();
+                enemy.takeDamage(999);
             }
         }
 
