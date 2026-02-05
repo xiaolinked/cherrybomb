@@ -8,7 +8,7 @@
         "inter_wave_pause_time": 2
     },
     "hero": {
-        "base_hp": 220,
+        "base_hp": 250,
         "base_armor": 0,
         "move_speed": 10.0,
         "armor": {
@@ -22,13 +22,13 @@
             "regen_rate": 28,
             "regen_delay_after_dash": 0.5,
             "max_cap": 300,
-            "upgrade_increment": 60
+            "upgrade_increment": 40
         }
     },
     "abilities": {
         "dash": {
             "distance": 3.0,
-            "stamina_cost": 12,
+            "stamina_cost": 25,
             "cooldown": 0.2,
             "duration": 0.15,
             "iframe_duration": 0.15
@@ -68,8 +68,8 @@
         "despawn_distance": 40,
         "separation_distance_multiplier": 2.0,
         "movement": {
-            "walk_speed": 2.2,
-            "charge_speed": 6.0,
+            "walk_speed": 3.5,
+            "charge_speed": 8.5,
             "turn_rate": 720,
             "stop_distance": 0.1,
             "separation_push_factor": 0.5,
@@ -124,14 +124,14 @@
             "drop_spread": 1.0,
             "pickup_distance": 0.5,
             "cleanup_distance": 50,
-            "lucky_chance": 0.08,
+            "lucky_chance": 0.025,
             "lucky_multiplier": 3,
             "score_per_coin": 100,
             "score_per_kill": 50
         },
         "upgrades": {
-            "cost_base": 10,
-            "cost_scaling": 1.35,
+            "cost_base": 15,
+            "cost_scaling": 1.45,
             "cost_curve": "exponential"
         }
     },
@@ -162,10 +162,10 @@
             "shop_button_width": 110,
             "shop_button_height": 22.5,
             "shop_button_y": 85,
-            "card_width": 200,
-            "card_height": 120,
-            "card_spacing": 20,
-            "card_start_y": 150
+            "card_width": 260,
+            "card_height": 360,
+            "card_spacing": 40,
+            "card_start_y": 180
         },
         "stamina": {
             "low_stamina_flash_threshold": 20
@@ -184,67 +184,51 @@
                 "type": "damage",
                 "name": "Raw Power",
                 "description": "+2 Damage",
-                "cost": 25
+                "cost": 35
             },
             {
                 "type": "firerate",
                 "name": "Rapid Fire",
                 "description": "Faster Shoots",
-                "cost": 40
+                "cost": 55
             },
             {
                 "type": "multishot",
                 "name": "Multishot",
                 "description": "+1 Bullet/Shot",
-                "cost": 60
+                "cost": 85
             },
             {
                 "type": "health",
                 "name": "Vitality",
                 "description": "+50 Max HP",
-                "cost": 30
+                "cost": 40
             },
             {
                 "type": "stamina",
                 "name": "Endurance",
                 "description": "+60 Max Stamina",
-                "cost": 25
+                "cost": 35
+            },
+            {
+                "type": "ammo",
+                "name": "Heavy Mag",
+                "description": "+5 Max Ammo",
+                "cost": 50
+            },
+            {
+                "type": "regen",
+                "name": "Bio-Adapt",
+                "description": "+5 HP/sec Regen\n(+2 HP/sec more)",
+                "cost": 65
             }
         ]
     },
     "arena": {
         "is_endless": true,
         "grid_size": 2.0,
-        "obstacle_density": 0.015,
-        "spawn_point_cooldown": 0.5,
-        "chunk_size": 15,
-        "chunk_range": 2,
-        "safe_radius": 5,
-        "obstacle": {
-            "radius_min": 1.0,
-            "radius_max": 2.5,
-            "padding": 1.0,
-            "pillar_chance": 0.5,
-            "max_count": 300,
-            "cleanup_distance": 80
-        },
-        "fuel_barrel": {
-            "radius": 1.2,
-            "hp": 1,
-            "spawn_chance": 0.15,
-            "explosion_radius": 8.5,
-            "fire_zone_duration": 4.0,
-            "fire_zone_radius": 5.0,
-            "color": "#E67E22"
-        },
-        "cryo_barrel": {
-            "radius": 1.1,
-            "hp": 1,
-            "spawn_chance": 0.08,
-            "freeze_radius": 7.0,
-            "freeze_duration": 4.0,
-            "color": "#3498DB"
-        }
+        "width": 60.0,
+        "height": 40.0
     },
     "safety_limits": {
         "max_simultaneous_armed_enemies": 8,

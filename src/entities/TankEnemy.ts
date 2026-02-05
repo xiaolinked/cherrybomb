@@ -22,8 +22,8 @@ export class TankEnemy extends Enemy {
         ctx.translate(this.x, this.y);
 
         // Bloom
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = this.color;
+        // ctx.shadowBlur = 10;
+        // ctx.shadowColor = this.color;
 
         // Shield
         if (this.shield > 0) {

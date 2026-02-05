@@ -32,6 +32,7 @@ export class Hero extends Entity {
     public maxAmmo: number;
     public reloadTimer: number = 0;
     public multishot: number = 1;
+    public hpRegen: number = 0;
 
     // Dash
     private isDashing: boolean = false;
@@ -202,6 +203,12 @@ export class Hero extends Entity {
             this.afterimages[i].alpha -= dt * config.ui.hero.afterimage_fade_rate;
             if (this.afterimages[i].alpha <= 0) this.afterimages.splice(i, 1);
         }
+
+        // Health Regen
+        if (this.hp < this.maxHp && this.hpRegen > 0) {
+            this.hp += this.hpRegen * dt;
+            if (this.hp > this.maxHp) this.hp = this.maxHp;
+        }
     }
 
     private performPushBack(game: Game) {
@@ -272,9 +279,9 @@ export class Hero extends Entity {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Bloom Effect
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#2F80FF';
+        // Bloom Effect removed for performance
+        // ctx.shadowBlur = 15;
+        // ctx.shadowColor = '#2F80FF';
 
         // Visual Push Back Effect
         if (this.pushBackVisualTimer > 0) {
@@ -302,8 +309,8 @@ export class Hero extends Entity {
             // Flicker effect: solid white only half the time
             const isWhiteFrame = Math.floor(this.damageFlashTimer * 100) % 2 === 0;
             ctx.fillStyle = isWhiteFrame ? '#FFFFFF' : '#2F80FF';
-            ctx.shadowColor = '#FFFFFF';
-            ctx.shadowBlur = 20;
+            // ctx.shadowColor = '#FFFFFF';
+            // ctx.shadowBlur = 20;
         } else {
             ctx.fillStyle = '#2F80FF';
         }

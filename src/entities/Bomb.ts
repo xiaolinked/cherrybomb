@@ -172,13 +172,16 @@ export class Bomb extends Entity {
                 // Configurable Falloff
                 const pct = 1.0 - (dist / this.radiusExplosion);
 
-                // Universal Chain Reaction: Always Arm Bomb if present
-                if (enemy.bomb) enemy.bomb.arm();
+                // UNIVERSAL CHAIN REACTION: Detonate bomb on enemy back almost instantly
+                if (enemy.bomb) {
+                    enemy.bomb.timer = Math.min(enemy.bomb.timer, 0.05);
+                    enemy.bomb.arm();
+                }
 
                 if (enemy.shield > 0) {
                     // Case A: Shielded -> Shield gone, No HP Damage
                     enemy.shield = 0;
-                    console.log("Explosion Stripped Shield & Armed Bomb!");
+                    console.log("Explosion Stripped Shield & Triggered Bomb!");
                 } else {
                     // Case B: Unshielded -> Radial HP Damage
                     const actualDamage = Math.max(0, this.damage * pct);
@@ -188,19 +191,11 @@ export class Bomb extends Entity {
             }
         }
 
-        // 3. Fuel Barrels (Chain Reaction)
-        for (const barrel of game.fuelBarrels) {
-            const dist = this.distanceTo(barrel);
-            if (dist < this.radiusExplosion) {
-                barrel.takeDamage(999, game); // Explode barrels immediately
-            }
-        }
-
-        // 4. Detached Bombs (Chain Reaction)
+        // 3. Detached Bombs (Chain Reaction)
         for (const otherBomb of game.bombs) {
             if (otherBomb === this || otherBomb.state === BombState.DEAD || otherBomb.state === BombState.EXPLODING) continue;
             if (this.distanceTo(otherBomb) < this.radiusExplosion) {
-                otherBomb.timer = Math.min(otherBomb.timer, 0.1); // Detonate almost instantly
+                otherBomb.timer = Math.min(otherBomb.timer, 0.05); // Detonate almost instantly
             }
         }
 

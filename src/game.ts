@@ -8,13 +8,9 @@ import { WaveManager } from './managers/WaveManager';
 import { InputManager } from './input';
 import { Coin } from './entities/Coin';
 import { AudioManager } from './audio/AudioManager';
-import { Obstacle, ObstacleType } from './entities/Obstacle';
-import { FuelBarrel } from './entities/FuelBarrel';
-import { FireZone } from './entities/FireZone';
-import { CryoBarrel } from './entities/CryoBarrel';
 
 export interface UpgradeOption {
-    type: 'damage' | 'firerate' | 'multishot' | 'health' | 'stamina';
+    type: 'damage' | 'firerate' | 'multishot' | 'health' | 'stamina' | 'ammo' | 'regen';
     name: string;
     description: string;
     cost: number;
@@ -30,10 +26,6 @@ export class Game {
     public bombs: Bomb[] = [];
     public bullets: Bullet[] = [];
     public coins: Coin[] = [];
-    public obstacles: Obstacle[] = [];
-    public fuelBarrels: FuelBarrel[] = [];
-    public fireZones: FireZone[] = [];
-    public cryoBarrels: CryoBarrel[] = [];
     private generatedChunks: Set<string> = new Set();
 
     public score: number = 0;
@@ -60,143 +52,13 @@ export class Game {
         this.generateUpgradeOptions();
     }
 
-    private updateProceduralGeneration() {
-        const config = ConfigManager.getConfig();
-        const density = config.arena.obstacle_density;
-        const chunkSize = config.arena.chunk_size;
-        const chunkRange = config.arena.chunk_range;
 
-        const heroChunkX = Math.floor(this.hero.x / chunkSize);
-        const heroChunkY = Math.floor(this.hero.y / chunkSize);
-
-        for (let x = heroChunkX - chunkRange; x <= heroChunkX + chunkRange; x++) {
-            for (let y = heroChunkY - chunkRange; y <= heroChunkY + chunkRange; y++) {
-                const chunkId = `${x},${y}`;
-                if (!this.generatedChunks.has(chunkId)) {
-                    this.generateChunk(x, y, density, chunkSize);
-                    this.generatedChunks.add(chunkId);
-                }
-            }
-        }
-    }
-
-    private generateChunk(cx: number, cy: number, density: number, chunkSize: number) {
-        const config = ConfigManager.getConfig();
-        const obstacleConfig = config.arena.obstacle;
-
-        // Reduced density for "less rocks" - from remote merge
-        const finalDensity = density * 0.7;
-        const count = Math.floor(chunkSize * chunkSize * finalDensity);
-
-        for (let i = 0; i < count; i++) {
-            const rx = cx * chunkSize + Math.random() * chunkSize;
-            const ry = cy * chunkSize + Math.random() * chunkSize;
-
-            if (Math.abs(rx) < config.arena.safe_radius && Math.abs(ry) < config.arena.safe_radius) continue;
-
-            const radius = obstacleConfig.radius_min + Math.random() * (obstacleConfig.radius_max - obstacleConfig.radius_min);
-
-            let overlap = false;
-            for (const obs of this.obstacles) {
-                const dx = obs.x - rx;
-                const dy = obs.y - ry;
-                const distSq = dx * dx + dy * dy;
-                const minDist = (radius + obs.radius) + obstacleConfig.padding;
-                if (distSq < minDist * minDist) {
-                    overlap = true;
-                    break;
-                }
-            }
-            if (overlap) continue;
-            const type = Math.random() > obstacleConfig.pillar_chance ? ObstacleType.ROCK : ObstacleType.PILLAR;
-            this.obstacles.push(new Obstacle(rx, ry, type, radius));
-        }
-
-        // Independent Fuel Barrel Spawning
-        const barrelCount = Math.floor(chunkSize * chunkSize * 0.008); // Fewer attempts per chunk
-        for (let i = 0; i < barrelCount; i++) {
-            const fbx = cx * chunkSize + Math.random() * chunkSize;
-            const fby = cy * chunkSize + Math.random() * chunkSize;
-
-            if (Math.abs(fbx) < config.arena.safe_radius && Math.abs(fby) < config.arena.safe_radius) continue;
-
-            if (Math.random() < config.arena.fuel_barrel.spawn_chance) {
-                let overlap = false;
-                const fbRadius = config.arena.fuel_barrel.radius;
-
-                // Check overlap with obstacles
-                for (const obs of this.obstacles) {
-                    const dx = obs.x - fbx;
-                    const dy = obs.y - fby;
-                    if (dx * dx + dy * dy < Math.pow(fbRadius + obs.radius + 0.5, 2)) {
-                        overlap = true;
-                        break;
-                    }
-                }
-
-                // Check overlap with other barrels in this chunk (simplified check against existing ones)
-                if (!overlap) {
-                    for (const fb of this.fuelBarrels) {
-                        const dx = fb.x - fbx;
-                        const dy = fb.y - fby;
-                        if (dx * dx + dy * dy < Math.pow(fbRadius * 2 + 1, 2)) {
-                            overlap = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (!overlap) {
-                    this.fuelBarrels.push(new FuelBarrel(fbx, fby));
-                }
-            }
-        }
-
-        // Independent Cryo Barrel Spawning
-        if (Math.random() < config.arena.cryo_barrel.spawn_chance) {
-            const cbx = cx * chunkSize + Math.random() * chunkSize;
-            const cby = cy * chunkSize + Math.random() * chunkSize;
-            if (Math.abs(cbx) > config.arena.safe_radius || Math.abs(cby) > config.arena.safe_radius) {
-                let overlap = false;
-                const cbRadius = config.arena.cryo_barrel.radius;
-                for (const obs of this.obstacles) {
-                    const dx = obs.x - cbx;
-                    const dy = obs.y - cby;
-                    if (dx * dx + dy * dy < Math.pow(cbRadius + obs.radius + 0.5, 2)) {
-                        overlap = true;
-                        break;
-                    }
-                }
-                if (!overlap) {
-                    this.cryoBarrels.push(new CryoBarrel(cbx, cby));
-                }
-            }
-        }
-    }
 
     public togglePause() {
         this.isPaused = !this.isPaused;
     }
 
-    public checkObstacleCollision(entity: any): boolean {
-        let collided = false;
-        for (const obs of this.obstacles) {
-            const dx = entity.x - obs.x;
-            const dy = entity.y - obs.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const minDist = entity.radius + obs.radius;
 
-            if (dist < minDist) {
-                const overlap = minDist - dist;
-                const nx = dx / dist;
-                const ny = dy / dist;
-                entity.x += nx * overlap;
-                entity.y += ny * overlap;
-                collided = true;
-            }
-        }
-        return collided;
-    }
 
     public start() {
         this.isRunning = true;
@@ -285,10 +147,6 @@ export class Game {
         this.bombs = [];
         this.bullets = [];
         this.coins = [];
-        this.obstacles = [];
-        this.fuelBarrels = [];
-        this.cryoBarrels = [];
-        this.fireZones = [];
         this.generatedChunks.clear();
         this.score = 0;
         this.coinCount = 0;
@@ -300,10 +158,15 @@ export class Game {
         console.log("Game Restarted");
     }
 
-    public collectCoin(coin: Coin) {
+    public collectCoin(coin: Coin, index?: number) {
         coin.isDead = true;
-        const idx = this.coins.indexOf(coin);
-        if (idx >= 0) {
+
+        let idx = index;
+        if (idx === undefined) {
+            idx = this.coins.indexOf(coin);
+        }
+
+        if (idx !== undefined && idx >= 0) {
             this.coins.splice(idx, 1);
             const multiplier = coin.isLucky ? ConfigManager.getConfig().economy.coin.lucky_multiplier : 1;
             const gainedCoins = coin.value * multiplier;
@@ -323,8 +186,8 @@ export class Game {
         const opt = this.currentShopOptions[index];
         if (!opt) return;
 
+        const config = ConfigManager.getConfig();
         if (this.coinCount >= opt.cost) {
-            const config = ConfigManager.getConfig();
             this.coinCount -= opt.cost;
             this.shopCooldown = config.ui.shop.cooldown_after_buy;
             AudioManager.playBuy();
@@ -347,22 +210,35 @@ export class Game {
                     this.hero.maxStamina += config.hero.stamina.upgrade_increment;
                     this.hero.stamina = this.hero.maxStamina;
                     break;
+                case 'ammo':
+                    this.hero.maxAmmo += 5;
+                    this.hero.ammo = this.hero.maxAmmo;
+                    break;
+                case 'regen':
+                    if (this.hero.hpRegen === 0) {
+                        this.hero.hpRegen = 5;
+                    } else {
+                        this.hero.hpRegen += 2;
+                    }
+                    break;
             }
             this.currentShopOptions[index] = null as any;
+
+            // AS REQUESTED: IMMEDIATELY TRIGGER NEXT WAVE AFTER PURCHASE
+            this.waveManager.triggerNextPhase();
         } else {
             this.shopCooldown = ConfigManager.getConfig().ui.shop.cooldown_after_buy;
         }
     }
 
     private gameUpdate(dt: number, clickHappened: boolean) {
-        this.updateProceduralGeneration();
+        const config = ConfigManager.getConfig();
         if (this.shopCooldown > 0) this.shopCooldown -= dt;
 
         const input = InputManager.getInstance();
 
         if (this.hero.isDead) {
             if (!this.isDeathSequenceStarted) {
-                const config = ConfigManager.getConfig();
                 this.isDeathSequenceStarted = true;
                 this.deathPauseTimer = config.ui.death.pause_duration;
                 this.deathHighlightTimer = config.ui.death.highlight_duration;
@@ -405,7 +281,6 @@ export class Game {
                 const isKeyboard = input.keys['enter'];
 
                 if (this.waveManager.isReady) {
-                    const config = ConfigManager.getConfig();
                     const inStartBtn = Math.abs(mx - cx) < 140 && Math.abs(my - (h / 2)) < 27.5;
                     const inIndexBtn = Math.abs(mx - cx) < 140 && Math.abs(my - (h / 2 + 70)) < 27.5;
 
@@ -421,7 +296,6 @@ export class Game {
                         return;
                     }
                 } else if (this.waveManager.isShopOpen && this.shopCooldown <= 0) {
-                    const config = ConfigManager.getConfig();
                     const inButtonArea = Math.abs(mx - cx) < config.ui.shop.shop_button_width && Math.abs(my - config.ui.shop.shop_button_y) < config.ui.shop.shop_button_height;
                     if (isKeyboard || inButtonArea) {
                         this.waveManager.triggerNextPhase();
@@ -445,7 +319,6 @@ export class Game {
                     const mx = input.mouse.x;
                     const my = input.mouse.y;
                     const cx = window.innerWidth / 2;
-                    const config = ConfigManager.getConfig();
                     const startY = config.ui.shop.card_start_y;
                     const cardWidth = config.ui.shop.card_width;
                     const cardHeight = config.ui.shop.card_height;
@@ -472,12 +345,19 @@ export class Game {
 
         if (this.waveManager.isWaveActive) {
             this.hero.update(dt, this);
-            this.checkObstacleCollision(this.hero);
+
+            // Constrain Hero to Arena
+            const halfWidth = config.arena.width / 2;
+            const halfHeight = config.arena.height / 2;
+            const margin = this.hero.radius;
+            if (this.hero.x < -halfWidth + margin) this.hero.x = -halfWidth + margin;
+            if (this.hero.x > halfWidth - margin) this.hero.x = halfWidth - margin;
+            if (this.hero.y < -halfHeight + margin) this.hero.y = -halfHeight + margin;
+            if (this.hero.y > halfHeight - margin) this.hero.y = halfHeight - margin;
         }
 
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
-            const config = ConfigManager.getConfig();
             const dx = enemy.x - this.hero.x;
             const dy = enemy.y - this.hero.y;
             if (dx * dx + dy * dy > config.enemy.despawn_distance * config.enemy.despawn_distance) {
@@ -486,7 +366,6 @@ export class Game {
             }
 
             enemy.update(dt, this);
-            this.checkObstacleCollision(enemy);
             if (enemy.isDead) {
                 enemy.onDeath(this);
                 this.enemies.splice(i, 1);
@@ -511,83 +390,53 @@ export class Game {
             const bullet = this.bullets[i];
             bullet.update(dt, this);
 
-            // Fuel Barrel Collision
-            for (const barrel of this.fuelBarrels) {
-                if (bullet.distanceTo(barrel) < bullet.radius + barrel.radius) {
-                    barrel.takeDamage(bullet.damage, this);
-                    bullet.isDead = true;
-                    break;
-                }
-            }
-
-            // Cryo Barrel Collision
-            if (!bullet.isDead) {
-                for (const barrel of this.cryoBarrels) {
-                    if (bullet.distanceTo(barrel) < bullet.radius + barrel.radius) {
-                        barrel.takeDamage(bullet.damage, this);
-                        bullet.isDead = true;
-                        break;
-                    }
-                }
-            }
-
             if (bullet.isDead) this.bullets.splice(i, 1);
         }
 
-        for (let i = this.fuelBarrels.length - 1; i >= 0; i--) {
-            const barrel = this.fuelBarrels[i];
-            barrel.update(dt, this);
-            if (barrel.isDead) this.fuelBarrels.splice(i, 1);
-        }
 
-        for (let i = this.cryoBarrels.length - 1; i >= 0; i--) {
-            const barrel = this.cryoBarrels[i];
-            barrel.update(dt, this);
-            if (barrel.isDead) this.cryoBarrels.splice(i, 1);
-        }
-
-        for (let i = this.fireZones.length - 1; i >= 0; i--) {
-            const zone = this.fireZones[i];
-            zone.update(dt, this);
-            if (zone.isDead) this.fireZones.splice(i, 1);
-        }
 
         for (let i = this.coins.length - 1; i >= 0; i--) {
             const coin = this.coins[i];
             coin.update(dt, this);
-            if (this.hero.distanceTo(coin) < ConfigManager.getConfig().economy.coin.pickup_distance) this.collectCoin(coin);
+
+            if (this.hero.distanceTo(coin) < ConfigManager.getConfig().economy.coin.pickup_distance) {
+                this.collectCoin(coin);
+                continue; // Coin is spliced in collectCoin
+            }
 
             const dx = coin.x - this.hero.x;
             const dy = coin.y - this.hero.y;
-            const config = ConfigManager.getConfig();
-            if (dx * dx + dy * dy > config.economy.coin.cleanup_distance * config.economy.coin.cleanup_distance) this.coins.splice(i, 1);
-        }
-
-        const config = ConfigManager.getConfig();
-        if (this.obstacles.length > config.arena.obstacle.max_count) {
-            for (let i = this.obstacles.length - 1; i >= 0; i--) {
-                const obs = this.obstacles[i];
-                const dx = obs.x - this.hero.x;
-                const dy = obs.y - this.hero.y;
-                if (dx * dx + dy * dy > config.arena.obstacle.cleanup_distance * config.arena.obstacle.cleanup_distance) this.obstacles.splice(i, 1);
+            if (dx * dx + dy * dy > config.economy.coin.cleanup_distance * config.economy.coin.cleanup_distance) {
+                this.coins.splice(i, 1);
             }
         }
 
-        // Cleanup Fuel Barrels too
-        if (this.fuelBarrels.length > 200) {
-            for (let i = this.fuelBarrels.length - 1; i >= 0; i--) {
-                const fb = this.fuelBarrels[i];
-                const dx = fb.x - this.hero.x;
-                const dy = fb.y - this.hero.y;
-                if (dx * dx + dy * dy > 100 * 100) this.fuelBarrels.splice(i, 1);
+
+
+        // Arena Boundary Cleanup
+        const halfWidth = config.arena.width / 2;
+        const halfHeight = config.arena.height / 2;
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+            const enemy = this.enemies[i];
+            if (Math.abs(enemy.x) > halfWidth || Math.abs(enemy.y) > halfHeight) {
+                this.enemies.splice(i, 1);
             }
         }
+
+
     }
 
     public generateUpgradeOptions() {
         const config = ConfigManager.getConfig();
         const pool: UpgradeOption[] = config.shop.upgrades as UpgradeOption[];
-        const shuffled = [...pool].sort(() => 0.5 - Math.random());
+
+        // Filter pool: only multishot if wave >= 5
+        let filteredPool = pool;
+        if (this.waveManager.currentWave < 5) {
+            filteredPool = pool.filter(opt => opt.type !== 'multishot');
+        }
+
+        const shuffled = [...filteredPool].sort(() => 0.5 - Math.random());
 
         // Scale price based on wave: starts at 50% for wave 1, increases by 30% each wave
         const priceFactor = 0.2 + (this.waveManager.currentWave * 0.3);
@@ -604,11 +453,7 @@ export class Game {
             enemies: this.enemies,
             bombs: this.bombs,
             bullets: this.bullets,
-            coins: this.coins,
-            obstacles: this.obstacles,
-            fuelBarrels: this.fuelBarrels,
-            cryoBarrels: this.cryoBarrels,
-            fireZones: this.fireZones
+            coins: this.coins
         };
     }
 }

@@ -46,14 +46,8 @@ export class Renderer {
 
         // --- NEW PREMIUM BACKGROUND (Cyberpunk Inferno) ---
         // 0. Base Nebula Gradient
-        const bgGrad = this.ctx.createRadialGradient(
-            this.width / 2, this.height / 2, 0,
-            this.width / 2, this.height / 2, this.width
-        );
-        bgGrad.addColorStop(0, '#1a0505'); // Deep Maroon
-        bgGrad.addColorStop(0.6, '#080202'); // Near Black
-        bgGrad.addColorStop(1, '#000'); // Pure Black
-        this.ctx.fillStyle = bgGrad;
+        // --- NEW NIGHT-BLUEPRINT BACKGROUND ---
+        this.ctx.fillStyle = '#0f172a'; // Deep Navy Slate
         this.ctx.fillRect(0, 0, this.width, this.height);
 
         // Center camera on Hero if exists
@@ -88,22 +82,18 @@ export class Renderer {
         // Camera Offset (negative hero pos)
         this.ctx.translate(-cameraX, -cameraY);
 
+        // Draw Arena Floor (New Brotato Style)
+        this.drawArenaFloor();
+
         // Draw Infinite Grid
         this.drawInfiniteGrid(cameraX, cameraY);
 
-        // Draw Fire Zones (Ground Layer)
-        if (entities.fireZones) {
-            for (const zone of entities.fireZones) {
-                zone.draw(this.ctx);
-            }
-        }
+        // Draw Arena Boundary
+        this.drawArenaBoundary();
 
-        // Draw Obstacles
-        if (game.obstacles) {
-            for (const obstacle of game.obstacles) {
-                obstacle.draw(this.ctx);
-            }
-        }
+
+
+
 
         // Draw Entities
         for (const enemy of entities.enemies) {
@@ -116,17 +106,9 @@ export class Renderer {
             }
         }
 
-        if (entities.fuelBarrels) {
-            for (const barrel of entities.fuelBarrels) {
-                barrel.draw(this.ctx);
-            }
-        }
 
-        if (entities.cryoBarrels) {
-            for (const barrel of entities.cryoBarrels) {
-                barrel.draw(this.ctx);
-            }
-        }
+
+
 
         for (const bomb of entities.bombs) {
             bomb.draw(this.ctx);
@@ -183,6 +165,73 @@ export class Renderer {
         this.drawScanlines();
     }
 
+    private drawArenaFloor() {
+        const config = ConfigManager.getConfig();
+        const halfW = config.arena.width / 2;
+        const halfH = config.arena.height / 2;
+        const ctx = this.ctx;
+
+        ctx.save();
+        // Base Floor: Dark Blueprint Slate
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(-halfW, -halfH, config.arena.width, config.arena.height);
+
+        // Tech Grid (Double Line)
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 0.02;
+        for (let x = -halfW; x <= halfW; x += 2) {
+            ctx.beginPath();
+            ctx.moveTo(x, -halfH); ctx.lineTo(x, halfH);
+            ctx.stroke();
+        }
+        for (let y = -halfH; y <= halfH; y += 2) {
+            ctx.beginPath();
+            ctx.moveTo(-halfW, y); ctx.lineTo(halfW, y);
+            ctx.stroke();
+        }
+
+        // Blueprint "Markers" (Crosses)
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 0.01;
+        for (let x = -halfW + 10; x < halfW; x += 20) {
+            for (let y = -halfH + 10; y < halfH; y += 20) {
+                ctx.beginPath();
+                ctx.moveTo(x - 0.5, y); ctx.lineTo(x + 0.5, y);
+                ctx.moveTo(x, y - 0.5); ctx.lineTo(x, y + 0.5);
+                ctx.stroke();
+            }
+        }
+
+        ctx.restore();
+    }
+
+    private drawArenaBoundary() {
+        const config = ConfigManager.getConfig();
+        const halfW = config.arena.width / 2;
+        const halfH = config.arena.height / 2;
+        const ctx = this.ctx;
+
+        ctx.save();
+        // Dual Neon Frame
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 0.4;
+        ctx.strokeRect(-halfW - 0.2, -halfH - 0.2, config.arena.width + 0.4, config.arena.height + 0.4);
+
+        ctx.strokeStyle = '#00ffff'; // Electric Cyan
+        ctx.lineWidth = 0.1;
+        ctx.strokeRect(-halfW, -halfH, config.arena.width, config.arena.height);
+
+        // Corner Data Clusters
+        ctx.fillStyle = '#64748b';
+        const dS = 0.5;
+        ctx.fillRect(-halfW - dS, -halfH - dS, dS * 2, dS * 2);
+        ctx.fillRect(halfW - dS, -halfH - dS, dS * 2, dS * 2);
+        ctx.fillRect(-halfW - dS, halfH - dS, dS * 2, dS * 2);
+        ctx.fillRect(halfW - dS, halfH - dS, dS * 2, dS * 2);
+
+        ctx.restore();
+    }
+
     private drawInfiniteGrid(cameraX: number, cameraY: number) {
         const ctx = this.ctx;
         const config = ConfigManager.getConfig();
@@ -197,7 +246,7 @@ export class Renderer {
         const endY = Math.ceil((cameraY + halfHeight) / gridSize) * gridSize;
 
         ctx.save();
-        ctx.strokeStyle = 'rgba(255, 60, 0, 0.05)'; // Darker Red-Orange Grid
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.03)'; // Very faint dark grid
         ctx.lineWidth = 0.02;
 
         ctx.beginPath();
@@ -211,17 +260,16 @@ export class Renderer {
         }
         ctx.stroke();
 
-        // Glowing Magma Nodes (Angular/Structured)
+        // Functional Floor Markers (Angular/Structured)
         for (let x = startX; x <= endX; x += gridSize) {
             for (let y = startY; y <= endY; y += gridSize) {
                 const seed = Math.sin(x * 1.5) + Math.cos(y * 1.1);
                 if (seed > 0.85) {
                     const glow = (Math.sin(Date.now() * 0.002 + x) + 1) / 2;
-                    ctx.fillStyle = `rgba(255, 80, 0, ${0.05 + glow * 0.1})`;
-                    // Square "node" instead of circle
+                    ctx.fillStyle = `rgba(0, 255, 255, ${0.05 + glow * 0.1})`; // Cyan Node
                     ctx.fillRect(x - 0.2, y - 0.2, 0.4, 0.4);
 
-                    ctx.fillStyle = `rgba(255, 200, 0, ${0.2 + glow * 0.4})`;
+                    ctx.fillStyle = `rgba(255, 255, 255, ${0.2 + glow * 0.4})`; // White Node
                     ctx.fillRect(x - 0.025, y - 0.025, 0.05, 0.05);
                 }
             }
@@ -232,11 +280,11 @@ export class Renderer {
     private drawParallaxStars(camX: number, camY: number) {
         const ctx = this.ctx;
         ctx.save();
-        // Translate for parallax layers
+        // Digital Blueprint Particles
         const layers = [
-            { speed: 0.1, color: '#FF4E00', size: 1.0 }, // Orange Embers
-            { speed: 0.3, color: '#FF8C00', size: 1.5 },
-            { speed: 0.5, color: '#8B0000', size: 0.8 }
+            { speed: 0.1, color: '#334155', size: 0.8 },
+            { speed: 0.3, color: '#475569', size: 0.4 },
+            { speed: 0.5, color: '#00ffff', size: 0.2 }
         ];
 
         layers.forEach((layer, lIdx) => {
@@ -262,8 +310,6 @@ export class Renderer {
 
                 // Ember glow (Linear)
                 if (layer.speed > 0.3) {
-                    ctx.shadowBlur = 4;
-                    ctx.shadowColor = layer.color;
                     ctx.fillRect(sx, sy, 1, dashLen);
                 }
             });
@@ -340,14 +386,10 @@ export class Renderer {
 
         ctx.font = 'bold 18px monospace';
         ctx.fillStyle = '#FFF';
-        ctx.shadowBlur = 5;
-        ctx.shadowColor = '#FF4E00';
         ctx.fillText(`SCORE: ${game.score.toLocaleString()}`, 25, 40);
 
         ctx.fillStyle = '#FFD700';
-        ctx.shadowColor = '#FFD700';
         ctx.fillText(`COINS: ${game.coinCount}`, 25, 70);
-        ctx.shadowBlur = 0;
         ctx.restore();
 
         ctx.textAlign = 'center';
@@ -363,25 +405,19 @@ export class Renderer {
             ctx.fillText(`WAVE ${waveMgr.currentWave}`, centerX, 70);
         }
         else if (waveMgr.isWaveComplete) {
-            ctx.fillStyle = '#FF7B00';
+            ctx.fillStyle = '#2c3e50';
             ctx.font = 'bold 70px monospace';
-            ctx.shadowColor = '#FF4E00';
-            ctx.shadowBlur = 25;
             ctx.fillText("WAVE DEFEATED", centerX, height / 2);
             ctx.font = 'bold 24px monospace';
             ctx.fillText("COLLECTING REMNANTS...", centerX, height / 2 + 60);
-            ctx.shadowBlur = 0;
         }
         else if (waveMgr.isCountdown) {
             ctx.fillStyle = '#FF4E00';
             ctx.font = 'bold 100px monospace';
-            ctx.shadowColor = '#FF0000';
-            ctx.shadowBlur = 30;
             ctx.fillText(Math.ceil(waveMgr.stateTimer).toString(), centerX, height / 2);
 
             ctx.font = 'bold 30px monospace';
             ctx.fillStyle = '#FFF';
-            ctx.shadowBlur = 0;
             ctx.fillText("INITIATING WAVE INBOUND", centerX, height / 2 - 100);
         }
         else if (waveMgr.isReady) {
@@ -426,7 +462,6 @@ export class Renderer {
             ctx.fillRect(0, 0, width, height);
 
             // 1. Shop Header
-            const pulse = (Math.sin(Date.now() * 0.003) + 1) / 2;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
@@ -441,11 +476,15 @@ export class Renderer {
             ctx.stroke();
 
             ctx.fillStyle = '#FF7B00';
-            ctx.shadowBlur = 10 + pulse * 10;
-            ctx.shadowColor = '#FF4E00';
             ctx.font = 'bold 36px monospace';
             ctx.fillText("THERMAL REPOSITORY", centerX, 50);
-            ctx.shadowBlur = 0;
+
+            // Show Stats in Shop
+            ctx.font = 'bold 18px monospace';
+            ctx.fillStyle = '#2ECC71';
+            ctx.fillText(`HEALTH: ${Math.ceil(game.hero.hp)}/${game.hero.maxHp}`, centerX - 180, 85);
+            ctx.fillStyle = '#5DADE2';
+            ctx.fillText(`STAMINA: ${Math.ceil(game.hero.stamina)}/${game.hero.maxStamina}`, centerX + 180, 85);
 
             this.drawButton(centerX, 110, 240, 45, "DEPLOY TO NEXT WAVE", "#FF4E00");
 
@@ -475,9 +514,9 @@ export class Renderer {
                 ctx.save();
                 ctx.translate(0, hoverOffset);
 
-                // Card Glow/Shadow
-                ctx.shadowBlur = isHovered ? 30 : 15;
-                ctx.shadowColor = isHovered ? 'rgba(255, 78, 0, 0.4)' : 'rgba(0, 0, 0, 0.5)';
+                // Card base shadow removed
+                // ctx.shadowBlur = isHovered ? 30 : 15;
+                // ctx.shadowColor = isHovered ? 'rgba(255, 78, 0, 0.4)' : 'rgba(0, 0, 0, 0.5)';
 
                 // Card Base (Glassmorphism)
                 const cardGrad = ctx.createLinearGradient(x, y, x, y + cardHeight);
@@ -755,9 +794,9 @@ export class Renderer {
         const isHover = input.mouse.x >= x - w / 2 && input.mouse.x <= x + w / 2 &&
             input.mouse.y >= y - h / 2 && input.mouse.y <= y + h / 2;
 
-        // Button Body
-        ctx.shadowBlur = isHover ? 15 : 5;
-        ctx.shadowColor = color;
+        // Button Body shadow removed
+        // ctx.shadowBlur = isHover ? 15 : 5;
+        // ctx.shadowColor = color;
 
         const grad = ctx.createLinearGradient(0, 0, 0, h);
         if (isHover) {
@@ -970,8 +1009,8 @@ export class Renderer {
 
         ctx.strokeStyle = isHovered ? '#FF7B00' : '#FFF';
         ctx.lineWidth = 3;
-        ctx.shadowBlur = isHovered ? 15 + pulse * 10 : 0;
-        ctx.shadowColor = '#FF7B00';
+        // ctx.shadowBlur = isHovered ? 15 + pulse * 10 : 0;
+        // ctx.shadowColor = '#FF7B00';
 
 
         switch (type) {
@@ -1012,6 +1051,27 @@ export class Renderer {
                 // Bolt / Wing
                 ctx.beginPath();
                 ctx.moveTo(10, -25); ctx.lineTo(-15, 5); ctx.lineTo(5, 5); ctx.lineTo(-10, 25);
+                ctx.stroke();
+                break;
+            case 'ammo':
+                // Magazine / Box
+                ctx.beginPath();
+                ctx.rect(-15, -20, 30, 40);
+                // Bullet lines
+                ctx.moveTo(-8, -10); ctx.lineTo(8, -10);
+                ctx.moveTo(-8, 0); ctx.lineTo(8, 0);
+                ctx.moveTo(-8, 10); ctx.lineTo(8, 10);
+                ctx.stroke();
+                break;
+            case 'regen':
+                // Heartbeat / Wave
+                ctx.beginPath();
+                ctx.moveTo(-25, 0);
+                ctx.lineTo(-10, 0);
+                ctx.lineTo(-5, -20);
+                ctx.lineTo(5, 20);
+                ctx.lineTo(10, 0);
+                ctx.lineTo(25, 0);
                 ctx.stroke();
                 break;
         }

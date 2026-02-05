@@ -18,9 +18,13 @@ export abstract class Entity {
     public abstract update(dt: number, game: Game): void;
     public abstract draw(ctx: CanvasRenderingContext2D): void;
 
-    public distanceTo(other: Entity): number {
+    public distanceToSq(other: Entity): number {
         const dx = this.x - other.x;
         const dy = this.y - other.y;
-        return Math.sqrt(dx * dx + dy * dy);
+        return dx * dx + dy * dy;
+    }
+
+    public distanceTo(other: Entity): number {
+        return Math.sqrt(this.distanceToSq(other));
     }
 }

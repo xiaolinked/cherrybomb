@@ -128,10 +128,15 @@ export class WaveManager {
         this.state = WaveState.SHOP;
         console.log("Shop Open.");
 
-        // Auto-Heal Hero & Refill Stamina
+        // AS REQUESTED: Auto-Center Hero, Refill HP/Stamina/Ammo
+        this.game.hero.x = 0;
+        this.game.hero.y = 0;
         this.game.hero.hp = this.game.hero.maxHp;
         this.game.hero.stamina = this.game.hero.maxStamina;
-        console.log("Hero HP & Stamina Restored.");
+        this.game.hero.ammo = this.game.hero.maxAmmo;
+        this.game.hero.reloadTimer = 0;
+
+        console.log("Hero Position Reset & Resources Restored.");
 
         // Clear Enemies, Bombs, Coins, and Telegraphs
         this.game.enemies = [];
@@ -160,8 +165,8 @@ export class WaveManager {
             maxOnScreen = Math.floor(5 + progress * 7);
             spawnDelay = 2.5 - (progress * 1.8);
         } else {
-            // Wave 6+: Progressive increase in density
-            maxOnScreen = 12 + (this.currentWave - 5) * 3;
+            // Wave 6+: Progressive increase in density (Capped at 60 for performance)
+            maxOnScreen = Math.min(60, 12 + (this.currentWave - 5) * 3);
             spawnDelay = config.enemy.spawn.spawn_delay;
         }
 
@@ -214,8 +219,14 @@ export class WaveManager {
         const angle = Math.random() * Math.PI * 2;
         const dist = config.enemy.spawn.min_distance_from_hero + Math.random() * (config.enemy.spawn.max_distance_from_hero - config.enemy.spawn.min_distance_from_hero);
 
-        const x = this.game.hero.x + Math.cos(angle) * dist;
-        const y = this.game.hero.y + Math.sin(angle) * dist;
+        let x = this.game.hero.x + Math.cos(angle) * dist;
+        let y = this.game.hero.y + Math.sin(angle) * dist;
+
+        // Clamp to Arena
+        const halfWidth = config.arena.width / 2 - 2;
+        const halfHeight = config.arena.height / 2 - 2;
+        x = Math.max(-halfWidth, Math.min(halfWidth, x));
+        y = Math.max(-halfHeight, Math.min(halfHeight, y));
 
         this.activeTelegraphs.push({
             x, y,

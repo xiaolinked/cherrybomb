@@ -59,8 +59,8 @@ export class BlinkerEnemy extends Enemy {
         }
 
         // Bloom
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = this.color;
+        // ctx.shadowBlur = 10;
+        // ctx.shadowColor = this.color;
 
         ctx.rotate(this.angle);
 

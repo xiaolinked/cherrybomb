@@ -93,16 +93,17 @@ export class Enemy extends Entity {
             this.y += dirY * moveSpeed * dt;
 
             // Separation (Simple soft collision with other enemies)
-            // This prevents them from stacking perfectly on top of each other
             for (const other of game.enemies) {
                 if (other === this) continue;
-                const d2 = this.distanceTo(other);
-                if (d2 < this.radius * config.enemy.separation_distance_multiplier) {
-                    // Push away
+                const distSq = this.distanceToSq(other);
+                const minDist = this.radius * config.enemy.separation_distance_multiplier;
+                if (distSq < minDist * minDist) {
                     const pushX = this.x - other.x;
                     const pushY = this.y - other.y;
-                    const len = Math.sqrt(pushX * pushX + pushY * pushY);
-                    if (len > config.enemy.movement.separation_min_distance) {
+                    const lenSq = pushX * pushX + pushY * pushY;
+                    const minPushDistSq = config.enemy.movement.separation_min_distance * config.enemy.movement.separation_min_distance;
+                    if (lenSq > minPushDistSq) {
+                        const len = Math.sqrt(lenSq);
                         this.x += (pushX / len) * this.speed * config.enemy.movement.separation_push_factor * dt;
                         this.y += (pushY / len) * this.speed * config.enemy.movement.separation_push_factor * dt;
                     }
@@ -165,15 +166,14 @@ export class Enemy extends Entity {
 
         // Bloom / Glow Effect
         const pulse = (Math.sin(Date.now() * 0.01) + 1) / 2;
-        ctx.shadowBlur = 8 + pulse * 10;
+        // ctx.shadowBlur = 4 + pulse * 4;
 
         if (this.damageFlash > 0) {
-            ctx.shadowColor = '#FFF';
+            // Flash color handled below
         } else if (this.freezeTimer > 0) {
-            ctx.shadowColor = '#3498DB';
-            ctx.shadowBlur = 15;
+            // Ice color handled below
         } else {
-            ctx.shadowColor = '#FFD84D';
+            // Standard color handled below
         }
 
         // Draw Shield Aura if active
@@ -194,12 +194,9 @@ export class Enemy extends Entity {
 
         ctx.rotate(this.angle);
 
-        // Armed State -> Jitter & Brightness
         if (this.bomb && (this.bomb.state === BombState.ARMED || this.bomb.state === BombState.DETACHED)) {
             const jitter = (Math.random() - 0.5) * (6 * Math.PI / 180);
             if (this.freezeTimer <= 0) ctx.rotate(jitter); // Don't jitter if frozen
-            ctx.shadowColor = this.freezeTimer > 0 ? '#3498DB' : '#FF3B3B';
-            ctx.shadowBlur = 15 + Math.random() * 10;
         }
 
         // Draw Shape

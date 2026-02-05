@@ -8,15 +8,13 @@ export class Coin extends Entity {
     public speed: number = 8.0;
 
     // Animation
-    private bounceOffset: number = Math.random() * Math.PI * 2;
     private age: number = 0;
 
     constructor(x: number, y: number, value: number = 1, isLucky: boolean = false) {
         super(x, y);
         this.value = value;
         this.isLucky = isLucky;
-        this.color = isLucky ? '#FF00FF' : '#FFD700'; // Pink for lucky, Gold otherwise
-        this.radius = isLucky ? 0.5 : 0.35;
+        this.radius = isLucky ? 0.45 : 0.3;
     }
 
     public update(dt: number, game: Game): void {
@@ -29,17 +27,12 @@ export class Coin extends Entity {
         // Magnet Logic
         const dist = this.distanceTo(game.hero);
         if (dist < this.magnetRange) {
-            // Fly towards hero
             const dx = game.hero.x - this.x;
             const dy = game.hero.y - this.y;
             const angle = Math.atan2(dy, dx);
-
-            // Accelerate as it gets closer? Or constant speed
-            // Simple constant speed for now
             this.x += Math.cos(angle) * this.speed * dt;
             this.y += Math.sin(angle) * this.speed * dt;
 
-            // Collection (Close enough)
             if (dist < 0.5) {
                 game.collectCoin(this);
             }
@@ -51,35 +44,38 @@ export class Coin extends Entity {
         ctx.globalAlpha = this.opacity;
         ctx.translate(this.x, this.y);
 
-        // Bounce Animation
-        const bounce = Math.sin(this.age * 5 + this.bounceOffset) * 0.1;
-        ctx.translate(0, bounce);
+        // Slow spin effect via scaling
+        const spin = Math.cos(this.age * 4);
+        ctx.scale(Math.abs(spin), 1);
 
-        // Lucky Glow
+        // Metallic Gradient
+        const r = this.radius;
+        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
         if (this.isLucky) {
-            ctx.shadowColor = '#FF00FF';
-            ctx.shadowBlur = 10;
+            grad.addColorStop(0, '#fff'); // Platinum/Shiny
+            grad.addColorStop(0.5, '#bdc3c7');
+            grad.addColorStop(1, '#7f8c8d');
+            // ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+            // ctx.shadowBlur = 4;
+        } else {
+            grad.addColorStop(0, '#f1c40f'); // Gold
+            grad.addColorStop(0.7, '#f39c12');
+            grad.addColorStop(1, '#d35400');
+            // ctx.shadowColor = 'rgba(211, 84, 0, 0.3)';
+            // ctx.shadowBlur = 2;
         }
 
-        ctx.fillStyle = this.color;
+        ctx.fillStyle = grad;
         ctx.beginPath();
-        ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
         ctx.fill();
 
-        // Shine/Sparkle
-        ctx.fillStyle = '#FFF';
+        // Rim
+        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+        ctx.lineWidth = 0.05;
         ctx.beginPath();
-        ctx.arc(-0.1, -0.1, 0.08, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 3x Text
-        if (this.isLucky) {
-            ctx.shadowBlur = 0;
-            ctx.fillStyle = '#FFF';
-            ctx.font = 'bold 0.4px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText("3X", 0, 0.15);
-        }
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.stroke();
 
         ctx.restore();
     }

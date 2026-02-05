@@ -47,13 +47,7 @@ export class Bullet extends Entity {
             return;
         }
 
-        // Collision with Obstacles
-        for (const obs of game.obstacles) {
-            if (this.distanceTo(obs) < (this.radius + obs.radius)) {
-                this.isDead = true;
-                return;
-            }
-        }
+
 
         // Collision with Enemies
         for (const enemy of game.enemies) {
@@ -68,8 +62,8 @@ export class Bullet extends Entity {
     public draw(ctx: CanvasRenderingContext2D): void {
         ctx.save();
         ctx.globalAlpha = this.opacity;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = this.color;
+        // ctx.shadowBlur = 4;
+        // ctx.shadowColor = this.color;
         ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
