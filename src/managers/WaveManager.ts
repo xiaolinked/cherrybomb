@@ -12,7 +12,8 @@ export enum WaveState {
     WAVE,       // Playing
     WAVE_COMPLETE, // 2s pause with message
     SHOP,        // Intermission
-    INDEX        // Enemy Encyclopedia
+    INDEX,        // Enemy Encyclopedia
+    STATS         // Stats Overview
 }
 
 export interface SpawnTelegraph {
@@ -73,14 +74,24 @@ export class WaveManager {
 
     // Called by Game.ts on Space
     public openIndex() {
-        if (this.state === WaveState.READY) {
+        if (this.state === WaveState.READY || this.state === WaveState.WAVE || this.game.isPaused) {
             this.state = WaveState.INDEX;
         }
     }
 
+    public openStats() {
+        if (this.state === WaveState.READY || this.state === WaveState.WAVE || this.game.isPaused) {
+            this.state = WaveState.STATS;
+        }
+    }
+
     public triggerNextPhase() {
-        if (this.state === WaveState.INDEX) {
-            this.state = WaveState.READY;
+        if (this.state === WaveState.INDEX || this.state === WaveState.STATS) {
+            if (this.currentWave === 0) {
+                this.state = WaveState.READY;
+            } else {
+                this.state = WaveState.WAVE;
+            }
             return;
         }
 
@@ -294,6 +305,10 @@ export class WaveManager {
     }
     public get isIndexOpen(): boolean {
         return this.state === WaveState.INDEX;
+    }
+
+    public get isStatsOpen(): boolean {
+        return this.state === WaveState.STATS;
     }
 
     public get isCountdown(): boolean {

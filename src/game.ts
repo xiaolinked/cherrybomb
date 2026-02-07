@@ -10,7 +10,7 @@ import { Coin } from './entities/Coin';
 import { AudioManager } from './audio/AudioManager';
 
 export interface UpgradeOption {
-    type: 'damage' | 'firerate' | 'multishot' | 'health' | 'stamina' | 'ammo' | 'regen';
+    type: 'damage' | 'firerate' | 'multishot' | 'health' | 'stamina' | 'ammo' | 'regen' | 'armor';
     name: string;
     description: string;
     cost: number;
@@ -30,6 +30,7 @@ export class Game {
 
     public score: number = 0;
     public coinCount: number = 0;
+    public combos: { x: number, y: number, text: string, timer: number }[] = [];
     public currentShopOptions: UpgradeOption[] = [];
 
     private shopCooldown: number = 0;
@@ -90,17 +91,24 @@ export class Game {
                 const width = window.innerWidth;
                 const height = window.innerHeight;
 
-                // Top-right pause/unpause button
-                const isPauseBtn = Math.abs(mx - (width - 60)) < 40 && Math.abs(my - 40) < 20;
+                // Pause Button (HUD) - New Position
+                const isInPauseHUD = Math.abs(mx - 110) < 50 && Math.abs(my - 120) < 20;
 
-                // Center Resume button
                 const cx = width / 2;
-                const cy = height / 2 + 60;
-                const isResumeBtn = Math.abs(mx - cx) < 100 && Math.abs(my - cy) < 30;
+                const ch = height / 2;
+                
+                // Pause Menu Buttons
+                const isResume = Math.abs(mx - cx) < 120 && Math.abs(my - (ch - 20)) < 25;
+                const isIndex = Math.abs(mx - cx) < 120 && Math.abs(my - (ch + 50)) < 25;
+                const isStats = Math.abs(mx - cx) < 120 && Math.abs(my - (ch + 120)) < 25;
 
-                if (isPauseBtn || isResumeBtn) {
+                if (isInPauseHUD || isResume) {
                     this.togglePause();
                     this.pauseCooldown = 0.3;
+                } else if (isIndex) {
+                    this.waveManager.openIndex();
+                } else if (isStats) {
+                    this.waveManager.openStats();
                 }
             }
 
@@ -114,8 +122,7 @@ export class Game {
         if (clickHappened) {
             const mx = input.mouse.x;
             const my = input.mouse.y;
-            const width = window.innerWidth;
-            const isPauseBtn = Math.abs(mx - (width - 60)) < 40 && Math.abs(my - 40) < 20;
+            const isPauseBtn = Math.abs(mx - 110) < 50 && Math.abs(my - 120) < 20;
             if (isPauseBtn) {
                 this.togglePause();
                 this.pauseCooldown = 0.3;
@@ -170,8 +177,6 @@ export class Game {
             this.coins.splice(idx, 1);
             const multiplier = coin.isLucky ? ConfigManager.getConfig().economy.coin.lucky_multiplier : 1;
             const gainedCoins = coin.value * multiplier;
-            const config = ConfigManager.getConfig();
-            this.score += config.economy.coin.score_per_coin * gainedCoins;
             this.coinCount += gainedCoins;
 
             if (coin.isLucky) {
@@ -216,10 +221,13 @@ export class Game {
                     break;
                 case 'regen':
                     if (this.hero.hpRegen === 0) {
-                        this.hero.hpRegen = 5;
+                        this.hero.hpRegen = 2.5;
                     } else {
                         this.hero.hpRegen += 2;
                     }
+                    break;
+                case 'armor':
+                    config.hero.armor.damage_reduction_percent = Math.min(0.9, config.hero.armor.damage_reduction_percent + 0.05);
                     break;
             }
             this.currentShopOptions[index] = null as any;
@@ -236,6 +244,15 @@ export class Game {
         if (this.shopCooldown > 0) this.shopCooldown -= dt;
 
         const input = InputManager.getInstance();
+
+        // Update Combos
+        for (let i = this.combos.length - 1; i >= 0; i--) {
+            this.combos[i].timer -= dt;
+            this.combos[i].y -= dt * 1.5; // Float up
+            if (this.combos[i].timer <= 0) {
+                this.combos.splice(i, 1);
+            }
+        }
 
         if (this.hero.isDead) {
             if (!this.isDeathSequenceStarted) {
@@ -259,13 +276,22 @@ export class Game {
             return;
         }
 
-        if (this.waveManager.isShopOpen || this.waveManager.isReady || this.waveManager.isIndexOpen) {
+        if (this.waveManager.isShopOpen || this.waveManager.isReady || this.waveManager.isIndexOpen || this.waveManager.isStatsOpen) {
             const mx = input.mouse.x;
             const my = input.mouse.y;
             const cx = window.innerWidth / 2;
             const h = window.innerHeight;
             const width = window.innerWidth;
             const height = window.innerHeight;
+
+            if (this.waveManager.isStatsOpen) {
+                const inBackBtn = Math.abs(mx - cx) < 100 && Math.abs(my - (height - 80)) < 30;
+                if ((clickHappened && inBackBtn) || input.keys['escape']) {
+                    this.waveManager.triggerNextPhase();
+                    return;
+                }
+                return;
+            }
 
             if (this.waveManager.isIndexOpen) {
                 const inCloseBtn = Math.abs(mx - (width - 100)) < 80 && Math.abs(my - (height - 50)) < 25;
@@ -376,7 +402,6 @@ export class Game {
                     const isLucky = Math.random() < config.economy.coin.lucky_chance;
                     this.coins.push(new Coin(cx, cy, 1, isLucky));
                 }
-                this.score += config.economy.coin.score_per_kill;
             }
         }
 

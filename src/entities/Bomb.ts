@@ -82,9 +82,9 @@ export class Bomb extends Entity {
                 }
             }
 
-            // Check if parent dead -> Detach
+            // Check if parent dead -> Explode immediately
             if (this.parent.isDead) {
-                this.detach();
+                this.explode(game);
             }
         }
 
@@ -133,6 +133,11 @@ export class Bomb extends Entity {
         const originalParent = this.parent;
         this.originalParent = originalParent; // For death clarity
 
+        // SCORE LOGIC: Only counts if parent was damaged by player
+        if (originalParent && originalParent.damagedByPlayer) {
+            game.score++;
+        }
+
         // Transfer to global bomb list to ensure rendering if parent dies
         if (this.parent) {
             this.parent.bomb = null; // Detach from parent
@@ -140,28 +145,22 @@ export class Bomb extends Entity {
             game.bombs.push(this); // Handover to Game loop
         }
 
-        console.log("BOOM at ", this.x, this.y);
-
         // Deal Damage
         // 1. Hero
         const distHero = this.distanceTo(game.hero);
         if (distHero < this.radiusExplosion) {
-            // Damage Scaling (Linear Falloff)
-            // 1.0 at center, 0.0 at edge
             const pct = 1.0 - (distHero / this.radiusExplosion);
             const actualDamage = Math.max(0, this.damage * pct);
-
             game.hero.takeDamage(actualDamage, this);
             game.hitStopTimer = config.ui.explosion.hit_stop;
-            console.log("Hero hit by bomb! Damage: " + actualDamage.toFixed(1));
         }
 
-        // VISUAL SPEC: Screen shake (light)
+        // Screen shake
         game.renderer.triggerShake(config.bomb.explosion.screen_shake_intensity, config.ui.explosion.screen_shake_duration);
 
         // 2. Enemies (Chain Reaction)
+        let currentChainKills = 0;
         for (const enemy of game.enemies) {
-            // Self-Explosion Rule: Always Die
             if (originalParent === enemy) {
                 enemy.takeDamage(9999);
                 continue;
@@ -169,41 +168,40 @@ export class Bomb extends Entity {
 
             const dist = this.distanceTo(enemy);
             if (dist < this.radiusExplosion) {
-                // Configurable Falloff
                 const pct = 1.0 - (dist / this.radiusExplosion);
 
-                // UNIVERSAL CHAIN REACTION: Detonate bomb on enemy back almost instantly
                 if (enemy.bomb) {
                     enemy.bomb.timer = Math.min(enemy.bomb.timer, 0.05);
                     enemy.bomb.arm();
                 }
 
                 if (enemy.shield > 0) {
-                    // Case A: Shielded -> Shield gone, No HP Damage
                     enemy.shield = 0;
-                    console.log("Explosion Stripped Shield & Triggered Bomb!");
                 } else {
-                    // Case B: Unshielded -> Radial HP Damage
                     const actualDamage = Math.max(0, this.damage * pct);
                     enemy.takeDamage(actualDamage);
-                    console.log(`Explosion Hit Unshielded: ${actualDamage.toFixed(1)} dmg`);
+                    if (enemy.hp <= 0) currentChainKills++;
                 }
             }
+        }
+
+        // COMBO DISPLAY: If this killed multiple enemies in a chain
+        if (currentChainKills > 1) {
+            game.combos.push({
+                x: this.x,
+                y: this.y,
+                text: `x${currentChainKills}`,
+                timer: 1.0
+            });
         }
 
         // 3. Detached Bombs (Chain Reaction)
         for (const otherBomb of game.bombs) {
             if (otherBomb === this || otherBomb.state === BombState.DEAD || otherBomb.state === BombState.EXPLODING) continue;
             if (this.distanceTo(otherBomb) < this.radiusExplosion) {
-                otherBomb.timer = Math.min(otherBomb.timer, 0.05); // Detonate almost instantly
+                otherBomb.timer = Math.min(otherBomb.timer, 0.05);
             }
         }
-
-        // 3. Other Bombs? (Chain)
-        // We'll handle this global finding in Game or just iterate existing bombs
-
-        // Remove self next frame
-        // This is now handled by the explosionTimer in update
     }
 
     public draw(ctx: CanvasRenderingContext2D): void {

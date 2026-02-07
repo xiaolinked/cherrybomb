@@ -10,6 +10,7 @@ export class Enemy extends Entity {
     public maxShield: number;
 
     public bomb: Bomb | null = null;
+    public damagedByPlayer: boolean = false;
 
     protected speed: number;
     protected chargeSpeed: number;
@@ -50,6 +51,11 @@ export class Enemy extends Entity {
         if (this.isFadingOut) {
             this.opacity -= dt * 0.8;
             if (this.opacity < 0) this.opacity = 0;
+            
+            // Ensure the bomb also updates its opacity/fading logic
+            if (this.bomb && this.bomb.parent === this) {
+                this.bomb.update(dt, game);
+            }
             return; // STOP AI (no movement, no attacking)
         }
 
@@ -128,8 +134,9 @@ export class Enemy extends Entity {
         }
     }
 
-    public takeDamage(amount: number) {
+    public takeDamage(amount: number, isPlayer: boolean = false) {
         this.damageFlash = 0.1;
+        if (isPlayer) this.damagedByPlayer = true;
         // Shield absorbs damage first
         if (this.shield > 0) {
             this.shield -= amount;

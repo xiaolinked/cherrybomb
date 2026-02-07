@@ -5,14 +5,14 @@ export class FastEnemy extends Enemy {
         super(x, y);
 
         // Stats Override (Fast & Fragile)
-        this.maxHp = 30;
+        this.maxHp = 10;
         this.hp = this.maxHp;
 
-        this.maxShield = 20;
+        this.maxShield = 10;
         this.shield = this.maxShield;
 
-        this.speed = 6.0; // Very fast (Base is ~1.5)
-        this.chargeSpeed = 10.0; // Extremely fast when armed
+        this.speed = 12.0; // Faster than hero (Base is 10.0)
+        this.chargeSpeed = 16.0; // Extremely fast when armed
 
         this.color = '#FF3333'; // Bright Red
         this.radius = 0.5; // Slightly smaller

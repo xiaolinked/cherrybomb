@@ -8,30 +8,30 @@
         "inter_wave_pause_time": 2
     },
     "hero": {
-        "base_hp": 250,
+        "base_hp": 100,
         "base_armor": 0,
         "move_speed": 10.0,
         "armor": {
-            "damage_reduction_percent": 0.2
+            "damage_reduction_percent": 0.0
         },
         "hp": {
             "upgrade_increment": 50
         },
         "stamina": {
-            "base": 100,
+            "base": 125,
             "regen_rate": 28,
             "regen_delay_after_dash": 0.5,
-            "max_cap": 300,
+            "max_cap": 500,
             "upgrade_increment": 40
         }
     },
     "abilities": {
         "dash": {
-            "distance": 3.0,
+            "distance": 6.0,
             "stamina_cost": 25,
             "cooldown": 0.2,
-            "duration": 0.15,
-            "iframe_duration": 0.15
+            "duration": 0.2,
+            "iframe_duration": 0.2
         },
         "push_back": {
             "distance": 5.0,
@@ -219,8 +219,14 @@
             {
                 "type": "regen",
                 "name": "Bio-Adapt",
-                "description": "+5 HP/sec Regen\n(+2 HP/sec more)",
+                "description": "+2.5 HP/sec Regen\n(+2 HP/sec more)",
                 "cost": 65
+            },
+            {
+                "type": "armor",
+                "name": "Armor Plate",
+                "description": "+5% Damage Reduction",
+                "cost": 45
             }
         ]
     },
