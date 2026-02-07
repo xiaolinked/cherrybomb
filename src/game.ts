@@ -96,7 +96,7 @@ export class Game {
 
                 const cx = width / 2;
                 const ch = height / 2;
-                
+
                 // Pause Menu Buttons
                 const isResume = Math.abs(mx - cx) < 120 && Math.abs(my - (ch - 20)) < 25;
                 const isIndex = Math.abs(mx - cx) < 120 && Math.abs(my - (ch + 50)) < 25;
@@ -257,15 +257,23 @@ export class Game {
         if (this.hero.isDead) {
             if (!this.isDeathSequenceStarted) {
                 this.isDeathSequenceStarted = true;
-                this.deathPauseTimer = config.ui.death.pause_duration;
+                this.deathPauseTimer = 1.5; // Longer pause for the explosion effect
                 this.deathHighlightTimer = config.ui.death.highlight_duration;
+
+                // Create a dramatic explosion at hero's location
+                const heroExplosion = new Bomb(this.hero.x, this.hero.y, null);
+                // Manually set explosion radius and duration for hero for "wow" factor
+                heroExplosion.radiusExplosion = 8.0;
+                heroExplosion.explosionDuration = 1.2;
+                this.bombs.push(heroExplosion);
+                heroExplosion.explode(this);
             }
 
             if (clickHappened) {
                 const mx = input.mouse.x;
                 const my = input.mouse.y;
                 const cx = window.innerWidth / 2;
-                const cy = window.innerHeight / 2 + 80;
+                const cy = window.innerHeight / 2 + 100;
                 if (Math.abs(mx - cx) < 100 && Math.abs(my - cy) < 30) {
                     this.restart();
                     return;

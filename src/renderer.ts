@@ -467,7 +467,7 @@ export class Renderer {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
             ctx.fillRect(0, 0, width, height);
         }
-        
+
         if (waveMgr.isShopOpen) {
             // Darken background more for focus
             ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
@@ -670,15 +670,23 @@ export class Renderer {
             ctx.strokeRect(barCenterX - 100, healthY, 200, 15);
         }
 
-        if (game.hero.isDead) {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        if (game.hero.isDead && game.deathPauseTimer <= 0.8) {
+            const alpha = Math.min(1, (0.8 - game.deathPauseTimer) / 0.5);
+            ctx.save();
+            ctx.globalAlpha = alpha;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
             ctx.fillRect(0, 0, width, height);
 
-            ctx.fillStyle = '#FF0000';
-            ctx.font = 'bold 60px sans-serif';
-            ctx.fillText("YOU DIED", centerX, height / 2);
+            ctx.fillStyle = '#FF3333'; // Slightly brighter red
+            ctx.font = 'bold 84px sans-serif';
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#FF0000';
+            ctx.fillText("GAME OVER", centerX, height / 2);
+            ctx.shadowBlur = 0;
 
-            this.drawButton(centerX, height / 2 + 80, 200, 60, "RESTART", "#FFFFFF");
+            this.drawButton(centerX, height / 2 + 100, 220, 60, "RESTART", "#FFFFFF");
+            ctx.restore();
         }
 
         ctx.restore();
@@ -805,7 +813,7 @@ export class Renderer {
     private drawButton(x: number, y: number, w: number, h: number, text: string, color: string) {
         const ctx = this.ctx;
         ctx.save();
-        
+
         const input = InputManager.getInstance();
         const isHover = input.mouse.x >= x - w / 2 && input.mouse.x <= x + w / 2 &&
             input.mouse.y >= y - h / 2 && input.mouse.y <= y + h / 2;

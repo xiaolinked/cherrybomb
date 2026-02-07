@@ -36,7 +36,7 @@ export class Bomb extends Entity {
         this.damage = config.bomb.explosion.max_damage;
     }
 
-    private explosionDuration: number = ConfigManager.getConfig().bomb.explosion.visual_duration;
+    public explosionDuration: number = ConfigManager.getConfig().bomb.explosion.visual_duration;
     private explosionTimer: number = 0;
 
     public update(dt: number, game: Game): void {

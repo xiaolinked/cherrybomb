@@ -266,6 +266,7 @@ export class Hero extends Entity {
     }
 
     public draw(ctx: CanvasRenderingContext2D): void {
+        if (this.isDead) return;
         const config = ConfigManager.getConfig();
         for (const img of this.afterimages) {
             ctx.save();
