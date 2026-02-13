@@ -1,22 +1,38 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hot Zone</title>
-    <style>
-      body { margin: 0; overflow: hidden; background: #111; display: flex; justify-content: center; align-items: center; height: 100vh; }
-      canvas { box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-    </style>
-  </head>
-  <body>
-    <div id="rotate-warning">
-      <div style="font-size: 40px; margin-bottom: 20px;">↻</div>
-      <div style="font-size: 20px;">PLEASE ROTATE DEVICE</div>
-      <div style="font-size: 14px; color: #666; margin-top: 10px;">LANDSCAPE ONLY</div>
-    </div>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hot Zone</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    canvas {
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="rotate-warning">
+    <div style="font-size: 40px; margin-bottom: 20px;">↻</div>
+    <div style="font-size: 20px;">PLEASE ROTATE DEVICE</div>
+    <div style="font-size: 14px; color: #666; margin-top: 10px;">LANDSCAPE ONLY</div>
+  </div>
+  <img id="rick-gif" alt="" style="display: none;" />
+  <div id="rick-lyrics" style="display: none;"></div>
+  <div id="app"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>

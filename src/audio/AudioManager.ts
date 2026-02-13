@@ -29,7 +29,21 @@ export class AudioManager {
     static playReload() { this.play('reload'); }
     static playDeath() { this.play('death'); }
 
+
+
     private static audioCtx: AudioContext | null = null;
+    private static rickRollLoopHandle: number | null = null;
+    public static rickRollStartTime: number = 0;
+
+    static stopRickRoll() {
+        if (this.rickRollLoopHandle !== null) {
+            clearTimeout(this.rickRollLoopHandle);
+            this.rickRollLoopHandle = null;
+        }
+        this.rickRollStartTime = 0;
+        // Ideally we would also stop currently playing oscillators, but consistent with the simple implementation,
+        // we just stop the NEXT loop from starting.
+    }
 
     static playRickRollSequence(notes: { freq: number, dur: number }[]) {
         try {
@@ -39,6 +53,11 @@ export class AudioManager {
 
             const ctx = this.audioCtx;
             let currentTime = ctx.currentTime + 0.1;
+
+            // Record start time for lyric sync (only on first call)
+            if (this.rickRollStartTime === 0) {
+                this.rickRollStartTime = Date.now();
+            }
 
             notes.forEach(note => {
                 if (note.freq > 0) {
@@ -59,6 +78,18 @@ export class AudioManager {
                 }
                 currentTime += note.dur; // Move forward in time for next note
             });
+
+            // Loop Logic
+            const totalDuration = notes.reduce((acc, note) => acc + note.dur, 0);
+
+            // Clear any existing loop to be safe
+            if (this.rickRollLoopHandle !== null) clearTimeout(this.rickRollLoopHandle);
+
+            // Schedule next loop
+            this.rickRollLoopHandle = window.setTimeout(() => {
+                this.playRickRollSequence(notes);
+            }, totalDuration * 1000);
+
         } catch (e) {
             console.error("Audio error", e);
         }

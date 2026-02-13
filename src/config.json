@@ -8,7 +8,7 @@
         "inter_wave_pause_time": 2
     },
     "hero": {
-        "base_hp": 100,
+        "base_hp": 80,
         "base_armor": 0,
         "move_speed": 10.0,
         "armor": {
@@ -29,7 +29,7 @@
         "dash": {
             "distance": 6.0,
             "stamina_cost": 20,
-            "cooldown": 0.5,
+            "cooldown": 0.15,
             "duration": 0.2,
             "iframe_duration": 0.2
         },

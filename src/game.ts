@@ -94,8 +94,8 @@ export class Game {
                 const width = window.innerWidth;
                 const height = window.innerHeight;
 
-                // Pause Button (HUD) - New Position
-                const isInPauseHUD = Math.abs(mx - 110) < 50 && Math.abs(my - 120) < 20;
+                // Pause Button (HUD) - Top Right
+                const isInPauseHUD = Math.abs(mx - (width - 80)) < 50 && Math.abs(my - 50) < 20;
 
                 const cx = width / 2;
                 const ch = height / 2;
@@ -125,7 +125,8 @@ export class Game {
         if (clickHappened) {
             const mx = input.mouse.x;
             const my = input.mouse.y;
-            const isPauseBtn = Math.abs(mx - 110) < 50 && Math.abs(my - 120) < 20;
+            const width = window.innerWidth;
+            const isPauseBtn = Math.abs(mx - (width - 80)) < 50 && Math.abs(my - 50) < 20;
             if (isPauseBtn) {
                 this.togglePause();
                 this.pauseCooldown = 0.3;
@@ -137,7 +138,12 @@ export class Game {
         } else if (this.deathPauseTimer > 0) {
             this.deathPauseTimer -= dt;
             for (const bomb of this.bombs) {
-                if (bomb.state === BombState.EXPLODING) bomb.update(dt, this);
+                // Update ALL bombs so chains can start and play out
+                bomb.update(dt, this);
+            }
+            // Update Hero so the death animation plays during the slow motion/pause
+            if (this.hero.isDying) {
+                this.hero.update(dt, this);
             }
         } else {
             this.gameUpdate(dt, clickHappened); // Renamed original update to gameUpdate to avoid conflict
@@ -152,6 +158,7 @@ export class Game {
     }
 
     public restart() {
+        AudioManager.stopRickRoll();
         this.hero = new Hero(0, 0);
         this.enemies = [];
         this.bombs = [];
@@ -258,10 +265,10 @@ export class Game {
             }
         }
 
-        if (this.hero.isDead) {
+        if (this.hero.isDead || this.hero.isDying) {
             if (!this.isDeathSequenceStarted) {
                 this.isDeathSequenceStarted = true;
-                this.deathPauseTimer = 1.5; // Longer pause for the explosion effect
+                this.deathPauseTimer = 3.0; // Keep managing input block
                 this.deathHighlightTimer = config.ui.death.highlight_duration;
 
                 // Create a dramatic explosion at hero's location
@@ -272,6 +279,26 @@ export class Game {
                 this.bombs.push(heroExplosion);
                 heroExplosion.explode(this);
 
+                // --- NEW: TRIGGER ALL OTHER BOMBS TO EXPLODE INSTANTLY ---
+                for (let i = this.enemies.length - 1; i >= 0; i--) {
+                    const enemy = this.enemies[i];
+                    if (enemy.bomb) {
+                        const b = enemy.bomb;
+                        // Force detach and explode
+                        b.parent = null;
+                        enemy.bomb = null;
+                        this.bombs.push(b);
+                        b.explode(this);
+                    }
+                }
+
+                // Explode already detached bombs
+                for (const bomb of this.bombs) {
+                    if (bomb !== heroExplosion && bomb.state !== BombState.EXPLODING && bomb.state !== BombState.DEAD) {
+                        bomb.explode(this);
+                    }
+                }
+
                 // Violent Screen Effects
                 this.renderer.triggerShake(1.5, 2.0);
                 this.renderer.triggerDeathFlash();
@@ -279,8 +306,8 @@ export class Game {
                 // ALWAYS Rick Roll
                 if (Math.random() < 1.1) {
                     this.isRickRolled = true;
-                    // Play the song instead of death sound
-                    setTimeout(() => AudioManager.playRickRollSequence(RICK_ROLL_NOTES), 500);
+                    // Play the song after the explosion (1.5s delay)
+                    setTimeout(() => AudioManager.playRickRollSequence(RICK_ROLL_NOTES), 1500);
                 } else {
                     AudioManager.playDeath();
                 }
@@ -290,8 +317,10 @@ export class Game {
                 const mx = input.mouse.x;
                 const my = input.mouse.y;
                 const cx = window.innerWidth / 2;
-                const cy = window.innerHeight / 2 + 100;
-                if (Math.abs(mx - cx) < 100 && Math.abs(my - cy) < 30) {
+                // Button was lowered to height/2 + 150
+                const cy = window.innerHeight / 2 + 150;
+                // Button width is 220, so half width is 110. Height is 60, half is 30.
+                if (Math.abs(mx - cx) < 110 && Math.abs(my - cy) < 30) {
                     this.restart();
                     return;
                 }
@@ -512,3 +541,4 @@ export class Game {
         };
     }
 }
+

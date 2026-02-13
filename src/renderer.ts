@@ -1,7 +1,10 @@
 import { ConfigManager } from './config';
 import { Game } from './game';
 import { InputManager } from './input';
-import { RICK_ROLL_ASCII } from './rickroll';
+
+import { RICK_ROLL_LYRICS_TIMED, RICK_ROLL_TOTAL_DURATION } from './rickroll';
+import { AudioManager } from './audio/AudioManager';
+
 
 export class Renderer {
     private ctx: CanvasRenderingContext2D;
@@ -15,6 +18,7 @@ export class Renderer {
 
     // Background Stars (Deterministic based on coords)
     private stars: { x: number, y: number, r: number, alpha: number }[] = [];
+    private rickImg: HTMLImageElement | null = null;
 
     constructor(canvas: HTMLCanvasElement) {
         this.ctx = canvas.getContext('2d')!;
@@ -25,6 +29,10 @@ export class Renderer {
             this.width = canvas.width = window.innerWidth;
             this.height = canvas.height = window.innerHeight;
         });
+
+        // Pre-load Rick Roll GIF
+        this.rickImg = new Image();
+        this.rickImg.src = '/rick.gif';
 
         // Pre-generate some star data for parallax chunks
         for (let i = 0; i < 200; i++) {
@@ -407,9 +415,9 @@ export class Renderer {
         ctx.fillText(`COINS: ${game.coinCount}`, 25, 70);
         ctx.restore();
 
-        // Pause Button (HUD) - Under Coins
+        // Pause Button (HUD) - Top Right
         if (!game.hero.isDead && !waveMgr.isReady && !waveMgr.isIndexOpen && !waveMgr.isShopOpen) {
-            this.drawButton(110, 120, 100, 35, "PAUSE", "#FFFFFF");
+            this.drawButton(this.width - 80, 50, 100, 35, "PAUSE", "#FFFFFF");
         }
 
         ctx.textAlign = 'center';
@@ -599,46 +607,60 @@ export class Renderer {
             }
         }
 
-        if (game.hero.isDead && game.deathPauseTimer <= 0.8) {
-            const alpha = Math.min(1, (0.8 - game.deathPauseTimer) / 0.5);
+        // Only show overlay after a delay for the Rick Roll, or immediately for normal game over
+        // Use deathPauseTimer to delay the overlay. 
+        // We set deathPauseTimer to 3.0 on death.
+        // Let's say we want to show the overlay when timer < 1.5 (so 1.5s delay)
+
+        const showOverlay = (game.hero.isDead || game.hero.isDying) && (game.isRickRolled ? game.deathPauseTimer <= 1.5 : true);
+
+        if (showOverlay) {
+            const alpha = 1.0;
             ctx.save();
             ctx.globalAlpha = alpha;
 
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-            ctx.fillRect(0, 0, width, height);
+            // No black background fill
+            // ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+            // ctx.fillRect(0, 0, width, height);
 
             if (game.isRickRolled) {
-                // RICK ROLL RENDER
-                ctx.fillStyle = '#FF69B4'; // Hot Pink
-                ctx.font = 'bold 20px monospace';
-                ctx.textAlign = 'center';
+                const rickGif = document.getElementById('rick-gif');
+                const rickLyrics = document.getElementById('rick-lyrics');
+                if (rickGif) {
+                    if (!rickGif.getAttribute('src')) {
+                        rickGif.setAttribute('src', '/rick.gif');
+                    }
+                    rickGif.style.display = 'block';
+                }
 
-                // Animate frames
-                const frameIndex = Math.floor(Date.now() / 200) % RICK_ROLL_ASCII.length;
-                const asciiLines = RICK_ROLL_ASCII[frameIndex].split('\n');
-
-                let yOff = height / 2 - 100;
-                asciiLines.forEach(line => {
-                    ctx.fillText(line, centerX, yOff);
-                    yOff += 24;
-                });
-
-                ctx.font = 'bold 30px monospace';
-                ctx.fillStyle = '#00FFFF';
-                ctx.fillText("NEVER GONNA GIVE YOU UP", centerX, yOff + 40);
-
-            } else {
-                // NORMAL GAME OVER
-                ctx.fillStyle = '#FF3333';
-                ctx.font = 'bold 84px sans-serif';
-                ctx.shadowBlur = 20;
-                ctx.shadowColor = '#FF0000';
-                ctx.fillText("GAME OVER", centerX, height / 2);
-                ctx.shadowBlur = 0;
+                if (rickLyrics) {
+                    rickLyrics.style.display = 'block';
+                    // Sync lyrics to music using elapsed time from AudioManager
+                    if (AudioManager.rickRollStartTime > 0) {
+                        const elapsed = (Date.now() - AudioManager.rickRollStartTime) / 1000;
+                        const loopIndex = Math.floor(elapsed / RICK_ROLL_TOTAL_DURATION);
+                        const timeInLoop = elapsed % RICK_ROLL_TOTAL_DURATION;
+                        const setIndex = loopIndex % RICK_ROLL_LYRICS_TIMED.length;
+                        const set = RICK_ROLL_LYRICS_TIMED[setIndex];
+                        // Find current phrase: last cue whose time <= timeInLoop
+                        let currentLyric = set[0].text;
+                        for (const cue of set) {
+                            if (timeInLoop >= cue.time) currentLyric = cue.text;
+                        }
+                        rickLyrics.innerText = currentLyric;
+                    }
+                }
             }
+            // Removed "GAME OVER" text else block
 
-            this.drawButton(centerX, height / 2 + 100, 220, 60, "RESTART", "#FFFFFF");
+            // Lowered Button (height/2 + 150)
+            this.drawButton(centerX, height / 2 + 150, 220, 60, "RESTART", "#FFFFFF");
             ctx.restore();
+        } else {
+            const rickGif = document.getElementById('rick-gif');
+            const rickLyrics = document.getElementById('rick-lyrics');
+            if (rickGif) { rickGif.style.display = 'none'; rickGif.removeAttribute('src'); }
+            if (rickLyrics) rickLyrics.style.display = 'none';
         }
 
         this.drawPermanentStatsBar(game);
@@ -747,7 +769,7 @@ export class Renderer {
 
             // HEALTH (HUD)
             const heY = hudY + 95;
-            const hpP = game.hero.hp / game.hero.maxHp;
+            const hpP = Math.max(0, game.hero.hp / game.hero.maxHp);
             ctx.fillStyle = '#2ECC71';
             ctx.fillText("HEALTH", iCX, heY - 8);
             ctx.fillStyle = '#333';

@@ -142,7 +142,9 @@ export class Bomb extends Entity {
         if (this.parent) {
             this.parent.bomb = null; // Detach from parent
             this.parent = null;
-            game.bombs.push(this); // Handover to Game loop
+            if (!game.bombs.includes(this)) {
+                game.bombs.push(this); // Handover to Game loop
+            }
         }
 
         // Deal Damage
