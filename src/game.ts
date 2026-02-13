@@ -399,10 +399,21 @@ export class Game {
                     const mx = input.mouse.x;
                     const my = input.mouse.y;
                     const cx = window.innerWidth / 2;
-                    const startY = config.ui.shop.card_start_y;
-                    const cardWidth = config.ui.shop.card_width;
-                    const cardHeight = config.ui.shop.card_height;
-                    const spacing = config.ui.shop.card_spacing;
+                    let startY = config.ui.shop.card_start_y;
+                    let cardWidth = config.ui.shop.card_width;
+                    let cardHeight = config.ui.shop.card_height;
+                    let spacing = config.ui.shop.card_spacing;
+
+                    // SYNC WITH RENDERER: Mobile Sizing Logic
+                    if (input.isTouchDevice) {
+                        const totalSpacing = 20;
+                        const availableWidth = Math.min(window.innerWidth - 20, 600);
+                        cardWidth = Math.floor((availableWidth - totalSpacing * 2) / 3);
+                        if (cardWidth > 160) cardWidth = 160;
+                        cardHeight = cardWidth * 1.4;
+                        spacing = 10;
+                    }
+
                     const totalWidth = (cardWidth * optionsPerWave) + (spacing * (optionsPerWave - 1));
                     const startX = cx - totalWidth / 2;
 

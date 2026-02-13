@@ -1,5 +1,8 @@
 import './style.css'
+import { inject } from '@vercel/analytics';
 import { Game } from './game';
+
+inject();
 
 // Inline CSS for full screen canvas
 const style = document.createElement('style');
