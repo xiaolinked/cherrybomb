@@ -10,6 +10,8 @@ export class BlinkerEnemy extends Enemy {
         super(x, y);
         this.color = '#A020F0'; // Purple
         this.speed = 1.2;
+        this.radius = 0.7;
+        this.shieldRadius = 1.5;
     }
 
     public update(dt: number, game: Game): void {
@@ -52,6 +54,7 @@ export class BlinkerEnemy extends Enemy {
         ctx.save();
         ctx.globalAlpha = this.opacity;
         ctx.translate(this.x, this.y);
+        ctx.scale(1.1, 1.1);
 
         // Glitch effect before blink
         if (this.blinkTimer < 0.2) {
@@ -62,21 +65,61 @@ export class BlinkerEnemy extends Enemy {
         // ctx.shadowBlur = 10;
         // ctx.shadowColor = this.color;
 
-        ctx.rotate(this.angle);
+        // Shield
+        if (this.shield > 0) {
+            ctx.save();
+            ctx.strokeStyle = '#4DFFF3';
+            ctx.globalAlpha = 0.7 * this.opacity;
+            ctx.lineWidth = 0.05;
+            ctx.beginPath();
+            ctx.arc(0, 0, this.shieldRadius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        }
 
-        // Draw Square
-        const s = 1.0;
-        ctx.fillStyle = this.color;
-        ctx.fillRect(-s / 2, -s / 2, s, s);
+        const isFacingLeft = Math.abs(this.angle) > Math.PI / 2;
+        if (isFacingLeft) {
+            ctx.scale(-1, 1);
+        }
 
-        // Inner Square (Lighter)
-        ctx.fillStyle = '#DDA0DD';
-        ctx.fillRect(-s / 4, -s / 4, s / 2, s / 2);
+        // --- DRAW REALISTIC BLINKER DRONE ---
+        const baseColor = this.damageFlash > 0 ? '#FFFFFF' : (this.freezeTimer > 0 ? '#AED6F1' : '#A020F0');
+        const crystalColor = this.damageFlash > 0 ? '#FFFFFF' : (this.freezeTimer > 0 ? '#5DADE2' : '#E0B0FF');
 
-        // Outline
-        ctx.strokeStyle = '#4B0082';
+        ctx.strokeStyle = this.damageFlash > 0 ? '#FFFFFF' : '#222';
         ctx.lineWidth = 0.05;
-        ctx.strokeRect(-s / 2, -s / 2, s, s);
+
+        // Phase-shifting Crystal Core
+        ctx.fillStyle = crystalColor;
+        const crystalSize = 0.4 + Math.sin(Date.now() * 0.02) * 0.1;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI / 3) * i;
+            const px = Math.cos(angle) * crystalSize;
+            const py = Math.sin(angle) * crystalSize;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Fragmented Armor Plates (Floating)
+        ctx.fillStyle = baseColor;
+        for (let i = 0; i < 4; i++) {
+            const angle = (Math.PI / 2) * i + (Date.now() * 0.002);
+            ctx.save();
+            ctx.rotate(angle);
+            ctx.beginPath();
+            ctx.roundRect(0.4, -0.2, 0.3, 0.4, 0.05);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // Stealth Sensor (Slit Eye)
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0.1, -0.05, 0.3, 0.1);
 
         ctx.restore();
 

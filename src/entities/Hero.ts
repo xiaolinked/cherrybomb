@@ -40,6 +40,10 @@ export class Hero extends Entity {
     private dashCooldownTimer: number = 0;
     private dashVector: { x: number, y: number } = { x: 0, y: 0 };
     private afterimages: { x: number, y: number, alpha: number }[] = [];
+    public walkTimer: number = 0;
+    public isWalking: boolean = false;
+    public deathAnimationTimer: number = 0;
+    public isDying: boolean = false;
 
     constructor(x: number, y: number) {
         super(x, y);
@@ -64,6 +68,21 @@ export class Hero extends Entity {
     public update(dt: number, game: Game): void {
         const config = ConfigManager.getConfig();
         const input = InputManager.getInstance();
+
+        if (this.isDying) {
+            // First frame of dying: Trigger big juice
+            if (this.deathAnimationTimer === 2.0) {
+                game.renderer.triggerShake(1.0, 0.4);
+            }
+
+            this.deathAnimationTimer -= dt;
+            if (this.deathAnimationTimer <= 0) {
+                this.isDying = false;
+                this.isDead = true;
+                this.deathAnimationTimer = 0;
+            }
+            return; // No input processing while dying
+        }
 
         // 1. Cooldowns
         if (this.dashCooldownTimer > 0) this.dashCooldownTimer -= dt;
@@ -165,7 +184,9 @@ export class Hero extends Entity {
 
         // 3. Normal Movement
         const axis = input.getAxis();
-        if (axis.x !== 0 || axis.y !== 0) {
+        this.isWalking = (axis.x !== 0 || axis.y !== 0);
+        if (this.isWalking) {
+            this.walkTimer += dt * 12;
             // Check for Dash Input (Shift or Space or Virtual Button)
             if ((input.keys['shift'] || input.keys[' '] || input.buttons.dash) &&
                 this.dashCooldownTimer <= 0 &&
@@ -183,6 +204,8 @@ export class Hero extends Entity {
                 this.x += axis.x * moveSpeed * dt;
                 this.y += axis.y * moveSpeed * dt;
             }
+        } else {
+            this.walkTimer = 0;
         }
 
         // 4. Stamina Regen
@@ -243,11 +266,14 @@ export class Hero extends Entity {
         this.damageFlashTimer = config.ui.hero.damage_flash_duration;
         AudioManager.playHit();
 
-        if (this.hp <= 0 && !this.isDead) {
+        if (this.hp <= 0 && !this.isDying && !this.isDead) {
             this.hp = 0;
-            this.isDead = true;
+            this.isDying = true;
+            this.deathAnimationTimer = 2.0; // 2 seconds of funny death
+            AudioManager.playDeath(); // Assuming this exists or plays a funny sound
 
             if (source) {
+                // ... same info for death clarity screen later ...
                 const originalParent = (source as any).originalParent;
                 this.killingBlow = {
                     explosionX: source.x,
@@ -268,6 +294,88 @@ export class Hero extends Entity {
     public draw(ctx: CanvasRenderingContext2D): void {
         if (this.isDead) return;
         const config = ConfigManager.getConfig();
+
+        // Define colors here so they are available for death animation
+        const skinColor = '#FFDAB9';
+        const clothesColor = this.damageFlashTimer > 0 ? (Math.floor(this.damageFlashTimer * 100) % 2 === 0 ? '#FFFFFF' : '#2F80FF') : '#2F80FF';
+        const outlineColor = this.damageFlashTimer > 0 ? '#FFFFFF' : '#0B3D91';
+
+        if (this.isDying) {
+            const progress = (2.0 - this.deathAnimationTimer) / 2.0;
+            const easeOut = 1 - Math.pow(1 - progress, 4);
+            const easeIn = Math.pow(progress, 2.5);
+            const opacity = 1.0 - easeIn;
+
+            // Fixed colors for death - no flashing
+            const dClothes = '#2F80FF';
+            const dSkin = '#FFDAB9';
+
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.globalAlpha = opacity;
+            ctx.scale(1.6, 1.6);
+
+            // 1. Flickering Core
+            const corePulse = (Math.sin(performance.now() / 30) + 1) / 2;
+            ctx.fillStyle = `rgba(0, 255, 255, ${0.4 + corePulse * 0.6})`;
+            ctx.beginPath();
+            ctx.arc(0, -0.1, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // --- TORSO ---
+            ctx.fillStyle = dClothes;
+            ctx.beginPath();
+            ctx.roundRect(-0.35, -0.4, 0.7, 0.75, 0.1);
+            ctx.fill();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 0.05;
+            ctx.stroke();
+
+            // --- HEAD (Launch) ---
+            ctx.save();
+            const hDist = progress * 15;
+            ctx.translate(Math.cos(progress * 12) * hDist, -0.6 - hDist * 2);
+            ctx.rotate(progress * 40);
+            ctx.fillStyle = dSkin;
+            ctx.beginPath();
+            ctx.arc(0, 0, 0.28, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            // Dead X Eyes
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 0.06;
+            const xS = 0.1;
+            ctx.beginPath();
+            ctx.moveTo(-xS, -xS); ctx.lineTo(xS, xS);
+            ctx.moveTo(xS, -xS); ctx.lineTo(-xS, xS);
+            ctx.stroke();
+            ctx.restore();
+
+            // --- LIMBS ---
+            const drawLimbExp = (angle: number, length: number, color: string, speed: number) => {
+                ctx.save();
+                const lDist = progress * speed;
+                ctx.translate(Math.cos(angle) * lDist, Math.sin(angle) * lDist - lDist * 0.5);
+                ctx.rotate(progress * 50 + angle);
+                ctx.fillStyle = color;
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 0.05;
+                ctx.beginPath();
+                ctx.roundRect(-0.1, 0, 0.2, length, 0.05);
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            };
+
+            drawLimbExp(Math.PI * 1.1, 0.6, dSkin, 18); // L Arm
+            drawLimbExp(Math.PI * 1.9, 0.6, dSkin, 22); // R Arm
+            drawLimbExp(Math.PI * 0.2, 0.7, '#1A365D', 15); // L Leg
+            drawLimbExp(Math.PI * 0.8, 0.7, '#1A365D', 20); // R Leg
+
+            ctx.restore();
+            return;
+        }
+
         for (const img of this.afterimages) {
             ctx.save();
             ctx.translate(img.x, img.y);
@@ -279,6 +387,7 @@ export class Hero extends Entity {
 
         ctx.save();
         ctx.translate(this.x, this.y);
+        ctx.scale(1.6, 1.6); // Hero is now BIGGER
 
         // Bloom Effect removed for performance
         // ctx.shadowBlur = 15;
@@ -298,37 +407,53 @@ export class Hero extends Entity {
 
         if (this.isDashing) {
             const angle = Math.atan2(this.dashVector.y, this.dashVector.x);
+            // Stretch along the dash direction while keeping character upright
             ctx.rotate(angle);
             ctx.scale(1.2, 0.85);
+            ctx.rotate(-angle);
         }
 
-        const w = 1.0;
-        const h = 1.4;
-
-        // Visual Polish: Keep color but add white glow/silhouette during flash
-        if (this.damageFlashTimer > 0) {
-            // Flicker effect: solid white only half the time
-            const isWhiteFrame = Math.floor(this.damageFlashTimer * 100) % 2 === 0;
-            ctx.fillStyle = isWhiteFrame ? '#FFFFFF' : '#2F80FF';
-            // ctx.shadowColor = '#FFFFFF';
-            // ctx.shadowBlur = 20;
-        } else {
-            ctx.fillStyle = '#2F80FF';
-        }
-
-        ctx.fillRect(-w / 2, -h / 2, w, h);
-
-        // Outline
-        ctx.strokeStyle = this.damageFlashTimer > 0 ? '#FFF' : '#0B3D91';
+        // --- DRAW HUMAN FIGURE ---
         ctx.lineWidth = 0.05;
-        ctx.strokeRect(-w / 2, -h / 2, w, h);
+        ctx.strokeStyle = outlineColor;
 
+        // Legs (Walking Animation)
+        const legSwing = Math.sin(this.walkTimer) * 0.4;
+
+        ctx.fillStyle = '#1A365D'; // Pants color
+        // Left Leg
+        ctx.save();
+        ctx.translate(-0.18, 0.2);
+        ctx.rotate(this.isWalking ? -legSwing : 0);
+        ctx.fillRect(-0.12, 0, 0.24, 0.5);
+        ctx.strokeRect(-0.12, 0, 0.24, 0.5);
         ctx.restore();
 
-        // --- DRAW BLASTER (On Top) ---
+        // Right Leg
+        ctx.save();
+        ctx.translate(0.18, 0.2);
+        ctx.rotate(this.isWalking ? legSwing : 0);
+        ctx.fillRect(-0.12, 0, 0.24, 0.5);
+        ctx.strokeRect(-0.12, 0, 0.24, 0.5);
+        ctx.restore();
+
+        // Torso
+        ctx.fillStyle = clothesColor;
+        ctx.beginPath();
+        ctx.roundRect(-0.35, -0.4, 0.7, 0.75, 0.1);
+        ctx.fill();
+        ctx.stroke();
+
+        // Head
+        ctx.fillStyle = skinColor;
+        ctx.beginPath();
+        ctx.arc(0, -0.6, 0.28, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Eyes (facing aim direction)
         const input = InputManager.getInstance();
         let aimAngle = 0;
-
         if (input.isTouchDevice && input.stickRight.active) {
             aimAngle = Math.atan2(input.stickRight.y, input.stickRight.x);
         } else {
@@ -336,17 +461,45 @@ export class Hero extends Entity {
         }
 
         ctx.save();
-        ctx.translate(this.x, this.y);
+        ctx.translate(0, -0.6);
+        ctx.rotate(aimAngle);
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(0.12, -0.08, 0.04, 0, Math.PI * 2);
+        ctx.arc(0.12, 0.08, 0.04, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // --- DRAW REALISTIC GUN ---
+        ctx.save();
         ctx.rotate(aimAngle);
 
-        ctx.fillStyle = '#444';
-        ctx.fillRect(0.2, -0.15, 0.9, 0.3);
-        ctx.fillStyle = '#666';
-        ctx.fillRect(0.2, -0.08, 0.25, 0.16);
+        // Flip gun vertically if aiming left so it's not upside down
+        if (Math.abs(aimAngle) > Math.PI / 2) {
+            ctx.scale(1, -1);
+        }
 
-        ctx.strokeStyle = '#111';
-        ctx.lineWidth = 0.05;
-        ctx.strokeRect(0.2, -0.15, 0.9, 0.3);
+        // Handle/Grip
+        ctx.fillStyle = '#222';
+        ctx.fillRect(0.1, -0.1, 0.2, 0.35);
+        ctx.strokeRect(0.1, -0.1, 0.2, 0.35);
+
+        // Slide / Barrel
+        ctx.fillStyle = '#444';
+        ctx.fillRect(0.1, -0.18, 0.75, 0.25); // Main Body (Smaller gun)
+        ctx.strokeRect(0.1, -0.18, 0.75, 0.25);
+
+        // Barrel End / Muzzle
+        ctx.fillStyle = '#111';
+        ctx.fillRect(0.75, -0.1, 0.12, 0.12);
+
+        // Top Detail (Iron Sights)
+        ctx.fillStyle = '#333';
+        ctx.fillRect(0.2, -0.22, 0.08, 0.04);
+        ctx.fillRect(0.65, -0.22, 0.08, 0.04);
+
         ctx.restore();
+
+        ctx.restore(); // End Main Transform (this.x, this.y)
     }
 }

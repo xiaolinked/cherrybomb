@@ -9,6 +9,8 @@ export class SplitterEnemy extends Enemy {
         this.maxHp = 80;
         this.hp = this.maxHp;
         this.speed = 1.0;
+        this.radius = 0.8;
+        this.shieldRadius = 1.8;
     }
 
     public onDeath(game: Game): void {
@@ -26,32 +28,64 @@ export class SplitterEnemy extends Enemy {
         ctx.save();
         ctx.globalAlpha = this.opacity;
         ctx.translate(this.x, this.y);
-        ctx.rotate(this.angle);
+        ctx.scale(1.1, 1.1);
 
-        // Draw Octagon
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        const r = 0.8;
-        for (let i = 0; i < 8; i++) {
-            const angle = (Math.PI / 4) * i;
-            const px = Math.cos(angle) * r;
-            const py = Math.sin(angle) * r;
-            if (i === 0) ctx.moveTo(px, py);
-            else ctx.lineTo(px, py);
+        // Shield
+        if (this.shield > 0) {
+            ctx.save();
+            ctx.strokeStyle = '#4DFFF3';
+            ctx.globalAlpha = 0.7 * this.opacity;
+            ctx.lineWidth = 0.06;
+            ctx.beginPath();
+            ctx.arc(0, 0, this.shieldRadius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
         }
-        ctx.closePath();
-        ctx.fill();
 
-        // Inner detail (Center Circle)
-        ctx.fillStyle = '#C71585';
-        ctx.beginPath();
-        ctx.arc(0, 0, 0.3, 0, Math.PI * 2);
-        ctx.fill();
+        const isFacingLeft = Math.abs(this.angle) > Math.PI / 2;
+        if (isFacingLeft) {
+            ctx.scale(-1, 1);
+        }
 
-        // Outline
-        ctx.strokeStyle = '#8B004F';
+        // --- DRAW REALISTIC FRACTAL DRONE ---
+        const baseColor = this.damageFlash > 0 ? '#FFFFFF' : (this.freezeTimer > 0 ? '#AED6F1' : '#FF69B4');
+        const coreColor = this.damageFlash > 0 ? '#FFFFFF' : (this.freezeTimer > 0 ? '#5DADE2' : '#C71585');
+
+        ctx.strokeStyle = this.damageFlash > 0 ? '#FFFFFF' : '#333';
         ctx.lineWidth = 0.05;
+
+        // Modular Housing (3 distinct segments nested)
+        for (let i = 0; i < 3; i++) {
+            const rot = (Math.PI * 2 / 3) * i + (Date.now() * 0.001);
+            ctx.save();
+            ctx.rotate(rot);
+            ctx.fillStyle = coreColor;
+            ctx.beginPath();
+            ctx.roundRect(0.2, -0.3, 0.4, 0.6, 0.1);
+            ctx.fill();
+            ctx.stroke();
+
+            // Nested Unit Eye
+            ctx.fillStyle = '#111';
+            ctx.beginPath();
+            ctx.arc(0.45, 0, 0.1, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // Central Neural Hub
+        ctx.fillStyle = baseColor;
+        ctx.beginPath();
+        ctx.arc(0, 0, 0.35, 0, Math.PI * 2);
+        ctx.fill();
         ctx.stroke();
+
+        // Glowing Center
+        const nervePulse = 0.6 + Math.sin(Date.now() * 0.005) * 0.4;
+        ctx.fillStyle = `rgba(255, 255, 255, ${nervePulse})`;
+        ctx.beginPath();
+        ctx.arc(0, 0, 0.15, 0, Math.PI * 2);
+        ctx.fill();
 
         ctx.restore();
 

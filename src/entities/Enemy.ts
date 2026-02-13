@@ -11,6 +11,7 @@ export class Enemy extends Entity {
 
     public bomb: Bomb | null = null;
     public damagedByPlayer: boolean = false;
+    protected shieldRadius: number = 1.6;
 
     protected speed: number;
     protected chargeSpeed: number;
@@ -34,6 +35,13 @@ export class Enemy extends Entity {
         this.bomb = new Bomb(x, y, this);
     }
 
+    public getCollisionRadius(): number {
+        if (this.shield > 0) {
+            return this.shieldRadius;
+        }
+        return this.radius;
+    }
+
     public angle: number = 0;
     protected damageFlash: number = 0;
     protected freezeTimer: number = 0;
@@ -51,7 +59,7 @@ export class Enemy extends Entity {
         if (this.isFadingOut) {
             this.opacity -= dt * 0.8;
             if (this.opacity < 0) this.opacity = 0;
-            
+
             // Ensure the bomb also updates its opacity/fading logic
             if (this.bomb && this.bomb.parent === this) {
                 this.bomb.update(dt, game);
@@ -163,6 +171,7 @@ export class Enemy extends Entity {
         ctx.save();
         ctx.globalAlpha = this.opacity;
         ctx.translate(this.x, this.y);
+        ctx.scale(1.1, 1.1); // Reduced from 1.4
 
         // Ground Shadow (Dynamic)
         ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
@@ -190,7 +199,7 @@ export class Enemy extends Entity {
             ctx.globalAlpha = (0.5 + pulse * 0.3) * this.opacity;
             ctx.lineWidth = 0.08;
             ctx.beginPath();
-            ctx.arc(0, 0, 1.4 + pulse * 0.2, 0, Math.PI * 2);
+            ctx.arc(0, 0, this.shieldRadius + pulse * 0.2, 0, Math.PI * 2);
             ctx.stroke();
 
             // Subtle fill
@@ -199,36 +208,75 @@ export class Enemy extends Entity {
             ctx.restore();
         }
 
-        ctx.rotate(this.angle);
+        const isFacingLeft = Math.abs(this.angle) > Math.PI / 2;
+        if (isFacingLeft) {
+            ctx.scale(-1, 1);
+        }
+
+        // Apply a subtle lean in movement direction instead of full rotation
+        const movementLean = Math.sin(Date.now() * 0.005) * 0.05;
+        ctx.rotate(movementLean);
 
         if (this.bomb && (this.bomb.state === BombState.ARMED || this.bomb.state === BombState.DETACHED)) {
             const jitter = (Math.random() - 0.5) * (6 * Math.PI / 180);
             if (this.freezeTimer <= 0) ctx.rotate(jitter); // Don't jitter if frozen
         }
 
-        // Draw Shape
-        if (this.damageFlash > 0) {
-            ctx.fillStyle = '#FFF';
-        } else if (this.freezeTimer > 0) {
-            ctx.fillStyle = '#AED6F1'; // Light blue ice
-        } else {
-            ctx.fillStyle = '#FFD84D';
-        }
-        ctx.beginPath();
-        const h = 1.4;
-        const b = 1.2;
-        ctx.moveTo(h / 2, 0);
-        ctx.lineTo(-h / 2, b / 2);
-        ctx.lineTo(-h / 2, -b / 2);
-        ctx.closePath();
-        ctx.fill();
+        // --- DRAW HUMANoid CYBORG ---
+        const skinColor = this.damageFlash > 0 ? '#FFFFFF' : '#D2B48C';
+        const armorColor = this.damageFlash > 0 ? '#FFFFFF' : (this.freezeTimer > 0 ? '#5DADE2' : '#333');
+        const eyeColor = this.damageFlash > 0 ? '#FFFFFF' : (this.freezeTimer > 0 ? '#E1F5FE' : '#FF0000');
 
-        // High-Quality Outline
-        ctx.strokeStyle = this.damageFlash > 0 ? '#FFF' : 'rgba(138, 106, 0, 0.8)';
-        ctx.lineWidth = 0.06;
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 0.05;
+
+        // Walking Animation based on distance moved (procedural)
+        const walkCycle = Math.sin(Date.now() * 0.01 * this.speed) * 0.4;
+
+        // Legs
+        ctx.save();
+        ctx.fillStyle = '#111'; // Dark pants
+        // Left Leg
+        ctx.save();
+        ctx.translate(-0.15, 0.1);
+        ctx.rotate(-walkCycle);
+        ctx.fillRect(-0.1, 0, 0.2, 0.4);
+        ctx.strokeRect(-0.1, 0, 0.2, 0.4);
+        ctx.restore();
+        // Right Leg
+        ctx.save();
+        ctx.translate(0.15, 0.1);
+        ctx.rotate(walkCycle);
+        ctx.fillRect(-0.1, 0, 0.2, 0.4);
+        ctx.strokeRect(-0.1, 0, 0.2, 0.4);
+        ctx.restore();
+        ctx.restore();
+
+        // Torso (Lean Forward)
+        ctx.fillStyle = armorColor;
+        ctx.beginPath();
+        ctx.roundRect(-0.25, -0.4, 0.5, 0.6, 0.1);
+        ctx.fill();
         ctx.stroke();
 
-        ctx.restore();
+        // Backpack / Bomb Holder
+        ctx.fillStyle = '#222';
+        ctx.fillRect(-0.2, -0.3, 0.4, 0.3);
+
+        // Head
+        ctx.fillStyle = skinColor;
+        ctx.beginPath();
+        ctx.arc(0.1, -0.5, 0.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Glowing Cyborg Eyes
+        ctx.fillStyle = eyeColor;
+        ctx.beginPath();
+        ctx.arc(0.2, -0.52, 0.04, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore(); // Final restore from the beginning of the draw method (from translate/rotate)
 
         // Draw Attached Bomb
         if (this.bomb && this.bomb.parent === this) {

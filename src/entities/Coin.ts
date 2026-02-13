@@ -9,6 +9,7 @@ export class Coin extends Entity {
 
     // Animation
     private age: number = 0;
+    private isChasing: boolean = false;
 
     constructor(x: number, y: number, value: number = 1, isLucky: boolean = false) {
         super(x, y);
@@ -26,14 +27,19 @@ export class Coin extends Entity {
 
         // Magnet Logic
         const dist = this.distanceTo(game.hero);
-        if (dist < this.magnetRange) {
+        if (dist < this.magnetRange || this.isChasing) {
+            this.isChasing = true;
+
+            // Accelerate over time
+            this.speed += dt * 30.0; // Rapidly increase speed
+
             const dx = game.hero.x - this.x;
             const dy = game.hero.y - this.y;
             const angle = Math.atan2(dy, dx);
             this.x += Math.cos(angle) * this.speed * dt;
             this.y += Math.sin(angle) * this.speed * dt;
 
-            if (dist < 0.5) {
+            if (dist < 0.6) {
                 game.collectCoin(this);
             }
         }

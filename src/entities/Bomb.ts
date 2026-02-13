@@ -23,7 +23,7 @@ export class Bomb extends Entity {
     // Config values
     public radiusExplosion: number;
     public originalParent: Enemy | null = null;
-    private damage: number;
+    public damage: number;
 
     constructor(x: number, y: number, parent: Enemy | null = null) {
         super(x, y);
@@ -149,8 +149,8 @@ export class Bomb extends Entity {
         // 1. Hero
         const distHero = this.distanceTo(game.hero);
         if (distHero < this.radiusExplosion) {
-            const pct = 1.0 - (distHero / this.radiusExplosion);
-            const actualDamage = Math.max(0, this.damage * pct);
+            // Flat 20 damage as requested
+            const actualDamage = this.damage;
             game.hero.takeDamage(actualDamage, this);
             game.hitStopTimer = config.ui.explosion.hit_stop;
         }
@@ -170,8 +170,8 @@ export class Bomb extends Entity {
             if (dist < this.radiusExplosion) {
                 const pct = 1.0 - (dist / this.radiusExplosion);
 
-                if (enemy.bomb) {
-                    enemy.bomb.timer = Math.min(enemy.bomb.timer, 0.05);
+                if (enemy.bomb && enemy.bomb.state !== BombState.EXPLODING && enemy.bomb.state !== BombState.DEAD) {
+                    enemy.bomb.timer = Math.min(enemy.bomb.timer, 0.02);
                     enemy.bomb.arm();
                 }
 
@@ -199,7 +199,11 @@ export class Bomb extends Entity {
         for (const otherBomb of game.bombs) {
             if (otherBomb === this || otherBomb.state === BombState.DEAD || otherBomb.state === BombState.EXPLODING) continue;
             if (this.distanceTo(otherBomb) < this.radiusExplosion) {
-                otherBomb.timer = Math.min(otherBomb.timer, 0.05);
+                // Instantly arm and set short timer
+                otherBomb.timer = Math.min(otherBomb.timer, 0.02);
+                if (otherBomb.state === BombState.IDLE) {
+                    otherBomb.state = BombState.ARMED;
+                }
             }
         }
     }

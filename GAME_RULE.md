@@ -1,4 +1,4 @@
-# 🍒💣 CHERRY BOMB — GAME RULES
+# 🔥 HOT ZONE — GAME RULES
 ## Single Source of Truth (Must Be Followed)
 
 ---

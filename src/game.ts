@@ -221,9 +221,9 @@ export class Game {
                     break;
                 case 'regen':
                     if (this.hero.hpRegen === 0) {
-                        this.hero.hpRegen = 2.5;
+                        this.hero.hpRegen = 1.5;
                     } else {
-                        this.hero.hpRegen += 2;
+                        this.hero.hpRegen += 1.5; // Fixed: increase by 1.5 consistently
                     }
                     break;
                 case 'armor':
@@ -263,10 +263,14 @@ export class Game {
                 // Create a dramatic explosion at hero's location
                 const heroExplosion = new Bomb(this.hero.x, this.hero.y, null);
                 // Manually set explosion radius and duration for hero for "wow" factor
-                heroExplosion.radiusExplosion = 8.0;
-                heroExplosion.explosionDuration = 1.2;
+                heroExplosion.radiusExplosion = 10.0;
+                heroExplosion.explosionDuration = 1.5;
                 this.bombs.push(heroExplosion);
                 heroExplosion.explode(this);
+
+                // Violent Screen Effects
+                this.renderer.triggerShake(1.5, 2.0);
+                this.renderer.triggerDeathFlash();
             }
 
             if (clickHappened) {
@@ -372,6 +376,11 @@ export class Game {
                     }
                 }
             }
+            return;
+        }
+
+        if (this.hero.isDying) {
+            this.hero.update(dt, this);
             return;
         }
 

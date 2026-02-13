@@ -10,6 +10,7 @@ export class Renderer {
 
     private shakeTimer: number = 0;
     private shakeIntensity: number = 0;
+    private deathFlashTimer: number = 0;
 
     // Background Stars (Deterministic based on coords)
     private stars: { x: number, y: number, r: number, alpha: number }[] = [];
@@ -157,6 +158,13 @@ export class Renderer {
 
         if (game.deathHighlightTimer > 0) {
             this.drawDeathClarity(game);
+        }
+
+        // --- DEATH FLASH ---
+        if (this.deathFlashTimer > 0) {
+            this.deathFlashTimer -= 0.016; // Approx dt
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${this.deathFlashTimer * 2})`;
+            this.ctx.fillRect(0, 0, this.width, this.height);
         }
 
         // --- PAUSE OVERLAY ---
@@ -481,12 +489,12 @@ export class Renderer {
             ctx.font = 'bold 36px monospace';
             ctx.fillText("SHOP", centerX, 50);
 
-            // Show Stats in Shop
-            ctx.font = 'bold 18px monospace';
-            ctx.fillStyle = '#2ECC71';
-            ctx.fillText(`HEALTH: ${Math.ceil(game.hero.hp)}/${game.hero.maxHp}`, centerX - 180, 85);
-            ctx.fillStyle = '#5DADE2';
-            ctx.fillText(`STAMINA: ${Math.ceil(game.hero.stamina)}/${game.hero.maxStamina}`, centerX + 180, 85);
+            // Stats in Shop removed as requested
+            // ctx.font = 'bold 18px monospace';
+            // ctx.fillStyle = '#2ECC71';
+            // ctx.fillText(`HEALTH: ${Math.ceil(game.hero.hp)}/${game.hero.maxHp}`, centerX - 180, 85);
+            // ctx.fillStyle = '#5DADE2';
+            // ctx.fillText(`STAMINA: ${Math.ceil(game.hero.stamina)}/${game.hero.maxStamina}`, centerX + 180, 85);
 
             this.drawButton(centerX, 110, 240, 45, "DEPLOY TO NEXT WAVE", "#FF4E00");
 
@@ -575,101 +583,6 @@ export class Renderer {
             }
         }
 
-        if (game.hero) {
-            const plateWidth = 240;
-            const plateHeight = 110;
-            const centerX = width / 2;
-            const plateX = centerX - plateWidth / 2;
-            const plateY = height - plateHeight - 15;
-
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-            ctx.beginPath();
-            ctx.roundRect(plateX, plateY, plateWidth, plateHeight, 10);
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-
-            const barCenterX = plateX + plateWidth / 2;
-
-            // --- AMMO ---
-            const ammoY = plateY + 25;
-            const maxAmmo = game.hero.maxAmmo;
-            const currentAmmo = game.hero.ammo;
-            const totalWidth = 200;
-            const totalHeight = 10;
-            const startX = barCenterX - totalWidth / 2;
-
-            const gap = 4;
-            const blockWidth = (totalWidth - (gap * (maxAmmo - 1))) / maxAmmo;
-
-            ctx.fillStyle = '#FFFF00';
-            ctx.font = 'bold 12px monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText("AMMO", barCenterX, ammoY - 12);
-
-            for (let i = 0; i < maxAmmo; i++) {
-                const x = startX + i * (blockWidth + gap);
-
-                if (game.hero.reloadTimer > 0) {
-                    const flash = Math.sin(performance.now() / 100) * 0.5 + 0.5;
-                    ctx.fillStyle = `rgba(255, 255, 0, ${flash})`;
-                } else {
-                    if (i < currentAmmo) {
-                        ctx.fillStyle = '#FFFF00';
-                    } else {
-                        ctx.fillStyle = '#333';
-                    }
-                }
-
-                ctx.fillRect(x, ammoY, blockWidth, totalHeight);
-                ctx.strokeStyle = '#444';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(x, ammoY, blockWidth, totalHeight);
-            }
-
-            // --- STAMINA (Segmented for 5 dashes) ---
-            const stamY = plateY + 55;
-            const stamina = game.hero.stamina;
-            const maxStamina = game.hero.maxStamina;
-            ctx.fillStyle = '#5DADE2';
-            ctx.fillText("STAMINA", barCenterX, stamY - 8);
-
-            const stamBlocks = 5;
-            const stamBlockGap = 4;
-            const stamBlockWidth = (totalWidth - (stamBlockGap * (stamBlocks - 1))) / stamBlocks;
-            const stamPerBlock = maxStamina / stamBlocks;
-
-            for (let i = 0; i < stamBlocks; i++) {
-                const x = startX + i * (stamBlockWidth + stamBlockGap);
-                ctx.fillStyle = '#333';
-                ctx.fillRect(x, stamY, stamBlockWidth, 8);
-
-                const blockFill = Math.max(0, Math.min(1, (stamina - i * stamPerBlock) / stamPerBlock));
-                if (blockFill > 0) {
-                    ctx.fillStyle = '#2E86C1';
-                    ctx.fillRect(x, stamY, stamBlockWidth * blockFill, 8);
-                }
-                ctx.strokeStyle = '#FFF';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(x, stamY, stamBlockWidth, 8);
-            }
-
-            // --- HEALTH ---
-            const healthY = plateY + 85;
-            const hpPct = game.hero.hp / game.hero.maxHp;
-            ctx.fillStyle = '#2ECC71';
-            ctx.font = 'bold 14px monospace';
-            ctx.fillText("HEALTH", barCenterX, healthY - 10);
-            ctx.fillStyle = '#555';
-            ctx.fillRect(barCenterX - 100, healthY, 200, 15);
-            ctx.fillStyle = hpPct > 0.3 ? '#27AE60' : '#FF0000';
-            ctx.fillRect(barCenterX - 100, healthY, 200 * hpPct, 15);
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = '#FFF';
-            ctx.strokeRect(barCenterX - 100, healthY, 200, 15);
-        }
-
         if (game.hero.isDead && game.deathPauseTimer <= 0.8) {
             const alpha = Math.min(1, (0.8 - game.deathPauseTimer) / 0.5);
             ctx.save();
@@ -678,7 +591,7 @@ export class Renderer {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
             ctx.fillRect(0, 0, width, height);
 
-            ctx.fillStyle = '#FF3333'; // Slightly brighter red
+            ctx.fillStyle = '#FF3333';
             ctx.font = 'bold 84px sans-serif';
             ctx.shadowBlur = 20;
             ctx.shadowColor = '#FF0000';
@@ -688,6 +601,160 @@ export class Renderer {
             this.drawButton(centerX, height / 2 + 100, 220, 60, "RESTART", "#FFFFFF");
             ctx.restore();
         }
+
+        this.drawPermanentStatsBar(game);
+        ctx.restore();
+    }
+
+    private drawPermanentStatsBar(game: Game) {
+        const ctx = this.ctx;
+        const config = ConfigManager.getConfig();
+        const height = this.height;
+
+        const barWidth = 220; // Increased width
+        const barHeight = 320; // Increased height
+        const x = 15;
+        const y = height / 2 - barHeight / 2;
+
+        ctx.save();
+        // Glassmorphism background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)'; // Slightly darker for contrast
+        ctx.beginPath();
+        ctx.roundRect(x, y, barWidth, barHeight, 16);
+        ctx.fill();
+
+        // Border - neon blue accent
+        ctx.strokeStyle = 'rgba(93, 173, 226, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // --- CONSOLIDATED HERO HUD (Directly Above Stats) ---
+        const hudH = 115;
+        const hudY = y - hudH - 12;
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.beginPath();
+        ctx.roundRect(x, hudY, barWidth, hudH, 16);
+        ctx.fill();
+        ctx.strokeStyle = '#5DADE2';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        if (game.hero) {
+            const iW = barWidth - 30;
+            const iX = x + 15;
+            const iCX = x + barWidth / 2;
+
+            // AMMO (HUD)
+            const amY = hudY + 28;
+            const maxA = game.hero.maxAmmo;
+            const curA = game.hero.ammo;
+            const aGap = 4;
+            const aBW = (iW - (aGap * (maxA - 1))) / maxA;
+
+            ctx.font = 'bold 11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#FFFF00';
+            ctx.fillText("AMMO", iCX, amY - 10);
+
+            for (let i = 0; i < maxA; i++) {
+                const b_x = iX + i * (aBW + aGap);
+                if (game.hero.reloadTimer > 0) {
+                    const flash = Math.sin(performance.now() / 100) * 0.5 + 0.5;
+                    ctx.fillStyle = `rgba(255, 255, 0, ${flash})`;
+                } else {
+                    ctx.fillStyle = i < curA ? '#FFFF00' : '#333';
+                }
+                ctx.fillRect(b_x, amY, aBW, 9);
+                ctx.strokeStyle = '#222';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(b_x, amY, aBW, 9);
+            }
+
+            // STAMINA (HUD)
+            const stY = hudY + 60;
+            const curS = game.hero.stamina;
+            const maxS = game.hero.maxStamina;
+            const sBlocks = 5;
+            const sGap = 4;
+            const sBW = (iW - (sGap * (sBlocks - 1))) / sBlocks;
+            const sPerB = maxS / sBlocks;
+
+            ctx.fillStyle = '#5DADE2';
+            ctx.fillText("STAMINA", iCX, stY - 8);
+
+            for (let i = 0; i < sBlocks; i++) {
+                const b_x = iX + i * (sBW + sGap);
+                ctx.fillStyle = '#333';
+                ctx.fillRect(b_x, stY, sBW, 8);
+
+                const fill = Math.max(0, Math.min(1, (curS - i * sPerB) / sPerB));
+                if (fill > 0) {
+                    ctx.fillStyle = '#2E86C1';
+                    ctx.fillRect(b_x, stY, sBW * fill, 8);
+                }
+                ctx.strokeStyle = '#FFF';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(b_x, stY, sBW, 8);
+            }
+
+            // HEALTH (HUD)
+            const heY = hudY + 95;
+            const hpP = game.hero.hp / game.hero.maxHp;
+            ctx.fillStyle = '#2ECC71';
+            ctx.fillText("HEALTH", iCX, heY - 8);
+            ctx.fillStyle = '#333';
+            ctx.fillRect(iX, heY, iW, 11);
+            ctx.fillStyle = hpP > 0.3 ? '#27AE60' : '#FF4444';
+            ctx.fillRect(iX, heY, iW * hpP, 11);
+            ctx.strokeStyle = '#FFF';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(iX, heY, iW, 11);
+        }
+
+        // Label Header
+        ctx.font = 'bold 18px monospace'; // Bigger header
+        ctx.fillStyle = '#5DADE2';
+        ctx.textAlign = 'center';
+        ctx.fillText("HERO STATS", x + barWidth / 2, y + 30);
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + 15, y + 45);
+        ctx.lineTo(x + barWidth - 15, y + 45);
+        ctx.stroke();
+
+        const stats = [
+            { label: "HEALTH", value: `${Math.ceil(game.hero.hp)}/${game.hero.maxHp}`, color: "#2ECC71" },
+            { label: "REGEN", value: `${game.hero.hpRegen.toFixed(1)}/s`, color: "#27AE60" },
+            { label: "STAMINA", value: `${Math.ceil(game.hero.stamina)}/${game.hero.maxStamina}`, color: "#5DADE2" },
+            { label: "DAMAGE", value: config.blaster.bullet_damage, color: "#FF4E00" },
+            { label: "FIRE RATE", value: `${(1 / config.blaster.fire_rate).toFixed(1)}/s`, color: "#FF7B00" },
+            { label: "SHOTS", value: `x${game.hero.multishot}`, color: "#F1C40F" },
+            { label: "ARMOR", value: `${(config.hero.armor.damage_reduction_percent * 100).toFixed(0)}%`, color: "#BDC3C7" },
+            { label: "SPEED", value: config.hero.move_speed.toFixed(1), color: "#9B59B6" }
+        ];
+
+        ctx.font = 'bold 15px monospace'; // Much bigger font for stats
+        ctx.textBaseline = 'middle';
+
+        const startY = y + 75;
+        const spacing = 30; // Increased spacing
+
+        stats.forEach((stat, i) => {
+            const currentY = startY + i * spacing;
+
+            // Label
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#CCC'; // Lighter label
+            ctx.fillText(stat.label, x + 15, currentY);
+
+            // Value
+            ctx.textAlign = 'right';
+            ctx.fillStyle = stat.color;
+            ctx.fillText(stat.value.toString(), x + barWidth - 15, currentY);
+        });
 
         ctx.restore();
     }
@@ -704,7 +771,7 @@ export class Renderer {
             ctx.translate(enemy.x, enemy.y);
             const w = 1.0;
             const h = 0.15;
-            const yOffset = -0.8;
+            const yOffset = -1.4; // Moved higher from -0.8
             ctx.fillStyle = '#333';
             ctx.fillRect(-w / 2, yOffset, w, h);
 
@@ -726,6 +793,10 @@ export class Renderer {
     public triggerShake(duration: number, intensity: number) {
         this.shakeTimer = duration;
         this.shakeIntensity = intensity;
+    }
+
+    public triggerDeathFlash() {
+        this.deathFlashTimer = 0.5; // Half second flash
     }
 
     private drawDeathClarity(game: Game) {
@@ -750,25 +821,33 @@ export class Renderer {
         ctx.stroke();
 
         if (kb.enemyInfo) {
+            // Line from killer to death location
             ctx.beginPath();
             ctx.moveTo(kb.explosionX, kb.explosionY);
             ctx.lineTo(kb.enemyInfo.x, kb.enemyInfo.y);
-            ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+            ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+            ctx.setLineDash([0.1, 0.1]);
             ctx.lineWidth = 0.05;
             ctx.stroke();
+            ctx.setLineDash([]);
 
             ctx.save();
             ctx.translate(kb.enemyInfo.x, kb.enemyInfo.y);
             ctx.rotate(kb.enemyInfo.angle);
-            ctx.fillStyle = 'rgba(255, 216, 77, 0.4)';
+
+            // Ghosts of the killer
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
             ctx.beginPath();
-            const h = 1.4;
-            const b = 1.2;
-            ctx.moveTo(h / 2, 0);
-            ctx.lineTo(-h / 2, b / 2);
-            ctx.lineTo(-h / 2, -b / 2);
-            ctx.closePath();
+            ctx.arc(0, 0, 0.8, 0, Math.PI * 2);
             ctx.fill();
+
+            // Minimalist Highlight
+            ctx.strokeStyle = '#FFD84D';
+            ctx.lineWidth = 0.02;
+            ctx.beginPath();
+            ctx.arc(0, 0, 0.5, 0, Math.PI * 2);
+            ctx.stroke();
+
             ctx.restore();
         } else if (kb.isDetached) {
             const pulse = 1.0 + Math.sin(performance.now() / 100) * 0.15;
@@ -1185,6 +1264,26 @@ export class Renderer {
                 ctx.lineTo(5, 20);
                 ctx.lineTo(10, 0);
                 ctx.lineTo(25, 0);
+                ctx.stroke();
+                break;
+            case 'armor':
+                // Shield / Plate
+                ctx.beginPath();
+                ctx.moveTo(-20, -25);
+                ctx.lineTo(20, -25);
+                ctx.lineTo(20, 5);
+                ctx.lineTo(0, 25);
+                ctx.lineTo(-20, 5);
+                ctx.closePath();
+                ctx.stroke();
+                // Inner Detail
+                ctx.beginPath();
+                ctx.moveTo(-10, -15);
+                ctx.lineTo(10, -15);
+                ctx.lineTo(10, 0);
+                ctx.lineTo(0, 15);
+                ctx.lineTo(-10, 0);
+                ctx.closePath();
                 ctx.stroke();
                 break;
         }

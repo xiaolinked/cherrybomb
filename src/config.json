@@ -18,18 +18,18 @@
             "upgrade_increment": 50
         },
         "stamina": {
-            "base": 125,
+            "base": 100,
             "regen_rate": 28,
             "regen_delay_after_dash": 0.5,
             "max_cap": 500,
-            "upgrade_increment": 40
+            "upgrade_increment": 20
         }
     },
     "abilities": {
         "dash": {
             "distance": 6.0,
-            "stamina_cost": 25,
-            "cooldown": 0.2,
+            "stamina_cost": 20,
+            "cooldown": 0.5,
             "duration": 0.2,
             "iframe_duration": 0.2
         },
@@ -44,7 +44,7 @@
     "blaster": {
         "bullet_speed": 18,
         "bullet_damage": 10,
-        "fire_rate": 0.375,
+        "fire_rate": 0.42,
         "bullet_range": 25,
         "magazine_size": 10,
         "reload_time": 1.2,
@@ -64,7 +64,7 @@
     "enemy": {
         "base_hp": 30,
         "base_shield_hp": 10,
-        "radius": 0.6,
+        "radius": 0.7,
         "despawn_distance": 40,
         "separation_distance_multiplier": 2.0,
         "movement": {
@@ -98,8 +98,8 @@
         "countdown_duration": 2.0,
         "explosion": {
             "radius": 4.0,
-            "max_damage": 50,
-            "min_damage": 10,
+            "max_damage": 20,
+            "min_damage": 20,
             "damage_falloff_curve": "linear",
             "chain_delay": 0.1,
             "screen_shake_intensity": 0.3,
@@ -207,7 +207,7 @@
             {
                 "type": "stamina",
                 "name": "Endurance",
-                "description": "+60 Max Stamina",
+                "description": "+1 Extra Dash",
                 "cost": 35
             },
             {
@@ -219,7 +219,7 @@
             {
                 "type": "regen",
                 "name": "Bio-Adapt",
-                "description": "+2.5 HP/sec Regen\n(+2 HP/sec more)",
+                "description": "+1.5 HP/sec Regen\n(+1.5 HP/sec more)",
                 "cost": 65
             },
             {

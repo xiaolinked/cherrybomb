@@ -1,4 +1,4 @@
-# CHERRY BOMB — SHAPE-ONLY VISUAL SPEC (MVP)
+# HOT ZONE — SHAPE-ONLY VISUAL SPEC (MVP)
 
 This document defines the exact visual rules for the shape-only prototype.
 All values are intentional and should be followed unless explicitly changed.
