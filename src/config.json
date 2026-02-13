@@ -1,6 +1,6 @@
 {
     "game_flow": {
-        "wave_base_duration": 15,
+        "wave_base_duration": 20,
         "wave_duration_growth": 1.5,
         "wave_enemy_count_base": 15,
         "wave_enemy_count_scaling": 1.3,

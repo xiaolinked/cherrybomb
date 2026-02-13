@@ -24,6 +24,32 @@ body {
 }
 
 canvas {
-    display: block;
-    box-shadow: 0 0 50px rgba(0,0,0,0.8);
+  display: block;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+}
+
+/* Force Landscape Warning Overlay */
+#rotate-warning {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  z-index: 9999;
+  color: #00FFFF;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+@media screen and (orientation: portrait) and (max-width: 900px) {
+  #rotate-warning {
+    display: flex;
+  }
+
+  #app {
+    display: none !important;
+  }
 }

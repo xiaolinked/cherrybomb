@@ -655,21 +655,29 @@ export class Renderer {
         const x = 15;
         const y = height / 2 - barHeight / 2;
 
+        const input = InputManager.getInstance();
+
         ctx.save();
-        // Glassmorphism background
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)'; // Slightly darker for contrast
-        ctx.beginPath();
-        ctx.roundRect(x, y, barWidth, barHeight, 16);
-        ctx.fill();
 
-        // Border - neon blue accent
-        ctx.strokeStyle = 'rgba(93, 173, 226, 0.4)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        // --- DESKTOP STATS BOX ---
+        if (!input.isTouchDevice) {
+            // Glassmorphism background
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.75)'; // Slightly darker for contrast
+            ctx.beginPath();
+            ctx.roundRect(x, y, barWidth, barHeight, 16);
+            ctx.fill();
 
-        // --- CONSOLIDATED HERO HUD (Directly Above Stats) ---
+            // Border - neon blue accent
+            ctx.strokeStyle = 'rgba(93, 173, 226, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // --- CONSOLIDATED HERO HUD ---
         const hudH = 115;
-        const hudY = y - hudH - 12;
+        // On mobile, stick it to top left (under score/coins)
+        // Desktop: Above stats box
+        const hudY = input.isTouchDevice ? 100 : (y - hudH - 12);
 
         ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
         ctx.beginPath();
@@ -752,7 +760,6 @@ export class Renderer {
         }
 
         // Label Header and Table - Only on Desktop
-        const input = InputManager.getInstance();
         if (!input.isTouchDevice) {
             ctx.font = 'bold 18px monospace'; // Bigger header
             ctx.fillStyle = '#5DADE2';
