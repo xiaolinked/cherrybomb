@@ -1,6 +1,7 @@
 import { ConfigManager } from './config';
 import { Game } from './game';
 import { InputManager } from './input';
+import { RICK_ROLL_ASCII } from './rickroll';
 
 export class Renderer {
     private ctx: CanvasRenderingContext2D;
@@ -499,9 +500,28 @@ export class Renderer {
             this.drawButton(centerX, 110, 240, 45, "DEPLOY TO NEXT WAVE", "#FF4E00");
 
             // 2. Upgrade Cards
-            const cardWidth = 260;
-            const cardHeight = 360;
-            const spacing = 40;
+            const input = InputManager.getInstance();
+            let cardWidth = 260;
+            let cardHeight = 360;
+            let spacing = 40;
+            let titleFont = 'bold 24px sans-serif';
+            let descFont = '16px sans-serif';
+            let costFont = 'bold 22px monospace';
+
+            if (input.isTouchDevice) {
+                const totalSpacing = 20; // 10px between cards
+                const availableWidth = Math.min(this.width - 20, 800);
+                cardWidth = Math.floor((availableWidth - totalSpacing * 2) / 3);
+                cardHeight = cardWidth * 1.5;
+                spacing = 10;
+
+                // Scale fonts
+                const scale = cardWidth / 260;
+                titleFont = `bold ${Math.max(10, Math.floor(20 * scale))}px sans-serif`;
+                descFont = `${Math.max(8, Math.floor(14 * scale))}px sans-serif`;
+                costFont = `bold ${Math.max(10, Math.floor(18 * scale))}px monospace`;
+            }
+
             const totalWidth = (cardWidth * 3) + (spacing * 2);
             const startX = centerX - totalWidth / 2;
             const cardY = 180;
@@ -513,7 +533,6 @@ export class Renderer {
                 const x = startX + i * (cardWidth + spacing);
                 const y = cardY;
 
-                const input = InputManager.getInstance();
                 const mx = input.mouse.x;
                 const my = input.mouse.y;
                 const isHovered = mx >= x && mx <= x + cardWidth && my >= y && my <= y + cardHeight;
@@ -523,10 +542,6 @@ export class Renderer {
 
                 ctx.save();
                 ctx.translate(0, hoverOffset);
-
-                // Card base shadow removed
-                // ctx.shadowBlur = isHovered ? 30 : 15;
-                // ctx.shadowColor = isHovered ? 'rgba(255, 78, 0, 0.4)' : 'rgba(0, 0, 0, 0.5)';
 
                 // Card Base (Glassmorphism)
                 const cardGrad = ctx.createLinearGradient(x, y, x, y + cardHeight);
@@ -545,39 +560,40 @@ export class Renderer {
 
                 // 3. Upgrade Icon (Simplified Vector)
                 ctx.save();
-                ctx.translate(x + cardWidth / 2, y + 80);
+                ctx.translate(x + cardWidth / 2, y + (cardHeight * 0.22));
+                // Scale icon if card is small
+                if (cardWidth < 150) ctx.scale(cardWidth / 260, cardWidth / 260);
                 this.drawUpgradeIcon(ctx, opt.type, isHovered);
                 ctx.restore();
 
                 // 4. Content
                 ctx.textAlign = 'center';
 
-
-
                 // Name
                 ctx.fillStyle = '#FFF';
-                ctx.font = 'bold 24px sans-serif';
-                ctx.fillText(opt.name.toUpperCase(), x + cardWidth / 2, y + 170);
+                ctx.font = titleFont;
+                ctx.fillText(opt.name.toUpperCase(), x + cardWidth / 2, y + (cardHeight * 0.47));
 
                 // Description
-                ctx.font = '16px sans-serif';
+                ctx.font = descFont;
                 ctx.fillStyle = '#BBB';
                 const descLines = opt.description.split('\n');
+                const lineHeight = parseInt(descFont) + 4;
                 descLines.forEach((line, li) => {
-                    ctx.fillText(line, x + cardWidth / 2, y + 205 + li * 20);
+                    ctx.fillText(line, x + cardWidth / 2, y + (cardHeight * 0.57) + li * lineHeight);
                 });
 
                 // Cost Section
                 const afford = game.coinCount >= opt.cost;
-                const costY = y + cardHeight - 50;
+                const costY = y + cardHeight - (cardHeight * 0.14);
 
                 // Cost bar
                 ctx.fillStyle = afford ? 'rgba(0, 255, 100, 0.1)' : 'rgba(255, 0, 0, 0.1)';
-                ctx.fillRect(x + 20, costY - 25, cardWidth - 40, 50);
+                ctx.fillRect(x + 10, costY - 20, cardWidth - 20, 40);
 
-                ctx.font = 'bold 22px monospace';
+                ctx.font = costFont;
                 ctx.fillStyle = afford ? '#00FF88' : '#FF4444';
-                ctx.fillText(`COINS: ${opt.cost}`, x + cardWidth / 2, costY + 8);
+                ctx.fillText(`COINS: ${opt.cost}`, x + cardWidth / 2, costY + 5);
 
                 ctx.restore();
             }
@@ -591,12 +607,35 @@ export class Renderer {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
             ctx.fillRect(0, 0, width, height);
 
-            ctx.fillStyle = '#FF3333';
-            ctx.font = 'bold 84px sans-serif';
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = '#FF0000';
-            ctx.fillText("GAME OVER", centerX, height / 2);
-            ctx.shadowBlur = 0;
+            if (game.isRickRolled) {
+                // RICK ROLL RENDER
+                ctx.fillStyle = '#FF69B4'; // Hot Pink
+                ctx.font = 'bold 20px monospace';
+                ctx.textAlign = 'center';
+
+                // Animate frames
+                const frameIndex = Math.floor(Date.now() / 200) % RICK_ROLL_ASCII.length;
+                const asciiLines = RICK_ROLL_ASCII[frameIndex].split('\n');
+
+                let yOff = height / 2 - 100;
+                asciiLines.forEach(line => {
+                    ctx.fillText(line, centerX, yOff);
+                    yOff += 24;
+                });
+
+                ctx.font = 'bold 30px monospace';
+                ctx.fillStyle = '#00FFFF';
+                ctx.fillText("NEVER GONNA GIVE YOU UP", centerX, yOff + 40);
+
+            } else {
+                // NORMAL GAME OVER
+                ctx.fillStyle = '#FF3333';
+                ctx.font = 'bold 84px sans-serif';
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = '#FF0000';
+                ctx.fillText("GAME OVER", centerX, height / 2);
+                ctx.shadowBlur = 0;
+            }
 
             this.drawButton(centerX, height / 2 + 100, 220, 60, "RESTART", "#FFFFFF");
             ctx.restore();
@@ -712,49 +751,52 @@ export class Renderer {
             ctx.strokeRect(iX, heY, iW, 11);
         }
 
-        // Label Header
-        ctx.font = 'bold 18px monospace'; // Bigger header
-        ctx.fillStyle = '#5DADE2';
-        ctx.textAlign = 'center';
-        ctx.fillText("HERO STATS", x + barWidth / 2, y + 30);
+        // Label Header and Table - Only on Desktop
+        const input = InputManager.getInstance();
+        if (!input.isTouchDevice) {
+            ctx.font = 'bold 18px monospace'; // Bigger header
+            ctx.fillStyle = '#5DADE2';
+            ctx.textAlign = 'center';
+            ctx.fillText("HERO STATS", x + barWidth / 2, y + 30);
 
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(x + 15, y + 45);
-        ctx.lineTo(x + barWidth - 15, y + 45);
-        ctx.stroke();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x + 15, y + 45);
+            ctx.lineTo(x + barWidth - 15, y + 45);
+            ctx.stroke();
 
-        const stats = [
-            { label: "HEALTH", value: `${Math.ceil(game.hero.hp)}/${game.hero.maxHp}`, color: "#2ECC71" },
-            { label: "REGEN", value: `${game.hero.hpRegen.toFixed(1)}/s`, color: "#27AE60" },
-            { label: "STAMINA", value: `${Math.ceil(game.hero.stamina)}/${game.hero.maxStamina}`, color: "#5DADE2" },
-            { label: "DAMAGE", value: config.blaster.bullet_damage, color: "#FF4E00" },
-            { label: "FIRE RATE", value: `${(1 / config.blaster.fire_rate).toFixed(1)}/s`, color: "#FF7B00" },
-            { label: "SHOTS", value: `x${game.hero.multishot}`, color: "#F1C40F" },
-            { label: "ARMOR", value: `${(config.hero.armor.damage_reduction_percent * 100).toFixed(0)}%`, color: "#BDC3C7" },
-            { label: "SPEED", value: config.hero.move_speed.toFixed(1), color: "#9B59B6" }
-        ];
+            const stats = [
+                { label: "HEALTH", value: `${Math.ceil(game.hero.hp)}/${game.hero.maxHp}`, color: "#2ECC71" },
+                { label: "REGEN", value: `${game.hero.hpRegen.toFixed(1)}/s`, color: "#27AE60" },
+                { label: "STAMINA", value: `${Math.ceil(game.hero.stamina)}/${game.hero.maxStamina}`, color: "#5DADE2" },
+                { label: "DAMAGE", value: config.blaster.bullet_damage, color: "#FF4E00" },
+                { label: "FIRE RATE", value: `${(1 / config.blaster.fire_rate).toFixed(1)}/s`, color: "#FF7B00" },
+                { label: "SHOTS", value: `x${game.hero.multishot}`, color: "#F1C40F" },
+                { label: "ARMOR", value: `${(config.hero.armor.damage_reduction_percent * 100).toFixed(0)}%`, color: "#BDC3C7" },
+                { label: "SPEED", value: config.hero.move_speed.toFixed(1), color: "#9B59B6" }
+            ];
 
-        ctx.font = 'bold 15px monospace'; // Much bigger font for stats
-        ctx.textBaseline = 'middle';
+            ctx.font = 'bold 15px monospace'; // Much bigger font for stats
+            ctx.textBaseline = 'middle';
 
-        const startY = y + 75;
-        const spacing = 30; // Increased spacing
+            const startY = y + 75;
+            const spacing = 30; // Increased spacing
 
-        stats.forEach((stat, i) => {
-            const currentY = startY + i * spacing;
+            stats.forEach((stat, i) => {
+                const currentY = startY + i * spacing;
 
-            // Label
-            ctx.textAlign = 'left';
-            ctx.fillStyle = '#CCC'; // Lighter label
-            ctx.fillText(stat.label, x + 15, currentY);
+                // Label
+                ctx.textAlign = 'left';
+                ctx.fillStyle = '#CCC'; // Lighter label
+                ctx.fillText(stat.label, x + 15, currentY);
 
-            // Value
-            ctx.textAlign = 'right';
-            ctx.fillStyle = stat.color;
-            ctx.fillText(stat.value.toString(), x + barWidth - 15, currentY);
-        });
+                // Value
+                ctx.textAlign = 'right';
+                ctx.fillStyle = stat.color;
+                ctx.fillText(stat.value.toString(), x + barWidth - 15, currentY);
+            });
+        }
 
         ctx.restore();
     }
@@ -947,7 +989,7 @@ export class Renderer {
 
     private drawMobileControls() {
         const input = InputManager.getInstance();
-        if (!input.isTouchDevice) return;
+        if (!input.isTouchDevice || input.isJoystickDisabled) return;
 
         const ctx = this.ctx;
         ctx.save();

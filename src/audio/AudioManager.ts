@@ -28,4 +28,39 @@ export class AudioManager {
     static playBuy() { this.play('buy'); }
     static playReload() { this.play('reload'); }
     static playDeath() { this.play('death'); }
+
+    private static audioCtx: AudioContext | null = null;
+
+    static playRickRollSequence(notes: { freq: number, dur: number }[]) {
+        try {
+            if (!this.audioCtx) {
+                this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            }
+
+            const ctx = this.audioCtx;
+            let currentTime = ctx.currentTime + 0.1;
+
+            notes.forEach(note => {
+                if (note.freq > 0) {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+
+                    osc.type = 'square'; // 8-bit sound
+                    osc.frequency.setValueAtTime(note.freq, currentTime);
+
+                    gain.gain.setValueAtTime(0.1, currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, currentTime + note.dur - 0.05);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    osc.start(currentTime);
+                    osc.stop(currentTime + note.dur);
+                }
+                currentTime += note.dur; // Move forward in time for next note
+            });
+        } catch (e) {
+            console.error("Audio error", e);
+        }
+    }
 }

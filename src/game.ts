@@ -8,6 +8,7 @@ import { WaveManager } from './managers/WaveManager';
 import { InputManager } from './input';
 import { Coin } from './entities/Coin';
 import { AudioManager } from './audio/AudioManager';
+import { RICK_ROLL_NOTES } from './rickroll';
 
 export interface UpgradeOption {
     type: 'damage' | 'firerate' | 'multishot' | 'health' | 'stamina' | 'ammo' | 'regen' | 'armor';
@@ -39,6 +40,7 @@ export class Game {
     public deathPauseTimer: number = 0;
     public deathHighlightTimer: number = 0;
     private isDeathSequenceStarted: boolean = false;
+    public isRickRolled: boolean = false;
 
     public waveManager: WaveManager;
     public isPaused: boolean = false;
@@ -75,6 +77,7 @@ export class Game {
         this.lastTime = time;
 
         const input = InputManager.getInstance();
+        input.isJoystickDisabled = this.waveManager.isShopOpen || this.waveManager.isIndexOpen || this.waveManager.isStatsOpen;
         const clickHappened = input.isNewClick();
 
         if (this.pauseCooldown > 0) this.pauseCooldown -= dt;
@@ -159,6 +162,7 @@ export class Game {
         this.coinCount = 0;
         this.waveManager = new WaveManager(this);
         this.isDeathSequenceStarted = false;
+        this.isRickRolled = false;
         this.deathPauseTimer = 0;
         this.deathHighlightTimer = 0;
         this.generateUpgradeOptions();
@@ -271,6 +275,15 @@ export class Game {
                 // Violent Screen Effects
                 this.renderer.triggerShake(1.5, 2.0);
                 this.renderer.triggerDeathFlash();
+
+                // ALWAYS Rick Roll
+                if (Math.random() < 1.1) {
+                    this.isRickRolled = true;
+                    // Play the song instead of death sound
+                    setTimeout(() => AudioManager.playRickRollSequence(RICK_ROLL_NOTES), 500);
+                } else {
+                    AudioManager.playDeath();
+                }
             }
 
             if (clickHappened) {

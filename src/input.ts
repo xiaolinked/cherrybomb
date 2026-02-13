@@ -16,6 +16,8 @@ export class InputManager {
     // Virtual Buttons
     public buttons: { [key: string]: boolean } = { dash: false, pushBack: false };
 
+    public isJoystickDisabled: boolean = false;
+
     private constructor() {
         // Feature detection for touch + Mobile Check + Chromebook Support
         this.isTouchDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
@@ -91,7 +93,7 @@ export class InputManager {
         }
 
         // Left Half for Movement Stick
-        if (x < width / 2) {
+        if (x < width / 2 && !this.isJoystickDisabled) {
             if (!this.stickLeft.active) {
                 this.stickLeft.active = true;
                 this.stickLeft.id = touch.identifier;
@@ -102,7 +104,7 @@ export class InputManager {
             }
         }
         // Right Half for Aim Stick + Clicks
-        else {
+        else if (!this.isJoystickDisabled) {
             if (!this.stickRight.active) {
                 this.stickRight.active = true;
                 this.stickRight.id = touch.identifier;
