@@ -302,7 +302,7 @@ export class Hero extends Entity {
 
         if (this.isDying) {
             const progress = (2.0 - this.deathAnimationTimer) / 2.0;
-            const easeOut = 1 - Math.pow(1 - progress, 4);
+
             const easeIn = Math.pow(progress, 2.5);
             const opacity = 1.0 - easeIn;
 
